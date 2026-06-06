@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenAI 接口连通性检测</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%2360a5fa'/%3E%3Cstop offset='100%25' stop-color='%231e40af'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Ccircle cx='22' cy='24' r='8' fill='none' stroke='white' stroke-width='2.5' opacity='0.9'/%3E%3Ccircle cx='22' cy='24' r='2.5' fill='%2334d399'/%3E%3Cpath d='M28 28 Q40 30 44 42' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' opacity='0.85'/%3E%3Ccircle cx='46' cy='44' r='6' fill='white' opacity='0.2'/%3E%3Cpath d='M42 40 L46 44 L43 47' fill='none' stroke='%2334d399' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='12' cy='48' r='2' fill='%23fbbf24' opacity='0.8'/%3E%3Ccircle cx='50' cy='18' r='3' fill='white' opacity='0.25'/%3E%3Ccircle cx='54' cy='14' r='1.5' fill='%23fbbf24' opacity='0.6'/%3E%3Cpath d='M34 16 Q38 14 42 18' fill='none' stroke='white' stroke-width='1.5' stroke-linecap='round' opacity='0.4'/%3E%3C/svg%3E">
+<style>
+  /* CSS 保持不变，非常优秀的设计 */
+  :root {
+    --primary: #2563eb; --primary-light: #3b82f6; --primary-dark: #1d4ed8;
+    --bg: #f0f5ff; --card: #ffffff; --border: #dbeafe;
+    --text: #1e3a5f; --text-light: #64748b;
+    --success: #10b981; --error: #ef4444; --warning: #f59e0b;
+    --log-bg: #0f172a; --log-text: #e2e8f0;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .header { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; padding: 24px 0; box-shadow: 0 4px 20px rgba(37,99,235,0.3); }
+  .header h1 { font-size: 24px; font-weight: 700; }
+  .header p { opacity: 0.85; font-size: 14px; margin-top: 4px; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+  .card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 24px; margin-top: 20px; box-shadow: 0 2px 12px rgba(37,99,235,0.06); }
+  .card-title { font-size: 16px; font-weight: 600; color: var(--primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .card-title::before { content: ''; width: 4px; height: 18px; background: var(--primary); border-radius: 2px; }
+  .form-row { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  .form-group { flex: 1; min-width: 200px; }
+  .form-group label { display: block; font-size: 13px; font-weight: 500; color: var(--text-light); margin-bottom: 6px; }
+  input, select { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; color: var(--text); background: #f8faff; transition: border-color 0.2s, box-shadow 0.2s; outline: none; }
+  input:focus, select:focus { border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+  .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; box-shadow: 0 2px 8px rgba(37,99,235,0.3); }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(37,99,235,0.4); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn-success { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+  .btn-outline { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); }
+  .btn-outline:hover { background: rgba(37,99,235,0.06); }
+  .model-table { width: 100%; border-collapse: collapse; }
+  .model-table th { text-align: left; padding: 10px 14px; font-size: 12px; font-weight: 600; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid var(--border); }
+  .model-table td { padding: 10px 14px; font-size: 14px; border-bottom: 1px solid #f1f5f9; }
+  .model-table tr:hover td { background: #f0f5ff; }
+  .model-name { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; color: var(--primary-dark); }
+  .status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .status-badge.success { background: #d1fae5; color: #065f46; }
+  .status-badge.error { background: #fee2e2; color: #991b1b; }
+  .status-badge.pending { background: #fef3c7; color: #92400e; }
+  .status-badge.testing { background: #dbeafe; color: #1e40af; animation: pulse 1s infinite; }
+  .status-badge.queuing { background: #e0e7ff; color: #3730a3; }
+  @keyframes pulse { 50% { opacity: 0.6; } }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .status-dot.success { background: var(--success); }
+  .status-dot.error { background: var(--error); }
+  .status-dot.pending { background: var(--warning); }
+  .status-dot.testing { background: var(--primary); }
+  .latency { font-family: monospace; color: var(--text-light); font-size: 13px; }
+  .btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 6px; }
+  .stats-row { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+  .stat-box { flex: 1; min-width: 120px; background: linear-gradient(135deg, #f0f5ff, #e8f0fe); border-radius: 10px; padding: 14px 16px; text-align: center; }
+  .stat-num { font-size: 28px; font-weight: 700; color: var(--primary); }
+  .stat-label { font-size: 12px; color: var(--text-light); margin-top: 2px; }
+  .log-panel { background: var(--log-bg); border-radius: 10px; padding: 16px; margin-top: 16px; max-height: 350px; overflow-y: auto; font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 13px; line-height: 1.7; color: var(--log-text); }
+  .log-panel::-webkit-scrollbar { width: 6px; }
+  .log-panel::-webkit-scrollbar-track { background: transparent; }
+  .log-panel::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+  .log-entry { padding: 2px 0; word-break: break-all; }
+  .log-time { color: #64748b; }
+  .log-info { color: #38bdf8; }
+  .log-success { color: #34d399; }
+  .log-error { color: #f87171; }
+  .log-warn { color: #fbbf24; }
+  .log-cmd { color: #c084fc; }
+  .toolbar { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; align-items: center; }
+  .toolbar .spacer { flex: 1; }
+  .test-all-hint { font-size: 12px; color: var(--text-light); }
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text-light); }
+  .empty-state svg { opacity: 0.3; margin-bottom: 12px; }
+  .checkbox-cell { width: 40px; }
+  .checkbox-cell input { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #dbeafe; border-top-color: var(--primary); border-radius: 50%; animation: spin 0.6s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .footer { text-align: center; padding: 24px; color: var(--text-light); font-size: 12px; }
+  .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; box-shadow: 0 2px 8px rgba(239,68,68,0.3); }
+  .btn-danger:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(239,68,68,0.4); }
+  .btn-danger:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+  .testing-toast, .toast { position: fixed; left: 50%; background: white; border-radius: 12px; padding: 12px 24px; font-size: 14px; font-weight: 500; z-index: 9998; opacity: 0; pointer-events: none; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); text-align: center; }
+  .testing-toast { top: 70px; transform: translateX(-50%) translateY(-60px); background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; box-shadow: 0 8px 30px rgba(37,99,235,0.35); display: flex; align-items: center; gap: 10px; }
+  .testing-toast.show, .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+  .toast { top: 20px; transform: translateX(-50%) translateY(-80px); border: 1.5px solid var(--border); box-shadow: 0 8px 30px rgba(37,99,235,0.15); color: var(--text); z-index: 9999; }
+  .toast.success { border-color: #86efac; background: #f0fdf4; color: #166534; }
+  .toast.error { border-color: #fca5a5; background: #fef2f2; color: #991b1b; }
+  .toast.warn { border-color: #fcd34d; background: #fffbeb; color: #92400e; }
+  .toast.info { border-color: #93c5fd; background: #eff6ff; color: #1e40af; }
+  input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type="number"] { -moz-appearance: textfield; }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 10000; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+  .modal-overlay.show { opacity: 1; pointer-events: auto; }
+  .modal-box { background: white; border-radius: 14px; padding: 28px 24px; width: 90%; max-width: 520px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); transform: translateY(20px) scale(0.95); transition: transform 0.3s cubic-bezier(0.16,1,0.3,1); }
+  .modal-overlay.show .modal-box { transform: translateY(0) scale(1); }
+  .modal-title { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .modal-desc { font-size: 13px; color: var(--text-light); margin-bottom: 14px; line-height: 1.5; }
+  .modal-textarea { width: 100%; height: 140px; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 13px; font-family: 'SF Mono','Fira Code','Consolas',monospace; color: var(--text); background: #f8faff; resize: vertical; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+  .modal-textarea:focus { border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+  .modal-btns { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div id="toast" class="toast"></div>
+  <div id="testingToast" class="testing-toast"><span class="spinner" style="border-color:rgba(255,255,255,0.3);border-top-color:white"></span><span id="testingToastText">正在检测...</span></div>
+  <div class="container">
+    <h1>🔗 OpenAI 接口连通性检测</h1>
+    <p>获取模型列表 · 逐个检测连通性 · 实时日志追踪</p>
+    <p style="font-size:12px;color:#86efac;margin-top:6px;display:flex;align-items:center;gap:6px;justify-content:center">
+      🔒 本站只提供检测页面，所有操作由你的本地浏览器执行，服务器不会保存你的密钥信息
+      <button type="button" id="btnWhyHeader" style="background:rgba(255,255,255,0.15);border:none;cursor:pointer;font-size:12px;color:white;border-radius:50%;width:18px;height:18px;line-height:18px;text-align:center;padding:0" title="查看详情">!</button>
+      <a href="https://github.com/landamao/openai-api-tester" target="_blank" style="display:inline-flex;align-items:center;margin-left:4px;opacity:0.7;transition:opacity 0.2s" title="GitHub 仓库" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7">
+        <svg width="18" height="18" viewBox="0 0 16 16" fill="white"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      </a>
+    </p>
+  </div>
+</div>
+
+<div class="container">
+  <div class="card">
+    <div class="card-title">连接配置</div>
+    <div class="form-row">
+      <div class="form-group" style="flex:2">
+        <label>API Base URL</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="baseUrl" type="text" placeholder="https://api.openai.com/v1" style="flex:1">
+          <label style="display:flex;align-items:center;gap:4px;white-space:nowrap;cursor:pointer;font-size:13px;color:#64748b;margin-bottom:0">
+            <input type="checkbox" id="autoV1" checked style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer">
+            自动补 /v1
+          </label>
+        </div>
+      </div>
+      <div class="form-group" style="flex:2">
+        <label>API Key</label>
+        <div style="position:relative">
+          <input id="apiKey" type="password" placeholder="sk-..." style="padding-right:42px">
+          <button type="button" id="btnToggleKey" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:6px;font-size:16px;opacity:0.5" title="显示/隐藏密钥">👁</button>
+        </div>
+      </div>
+      <div class="form-group" style="flex:0.8;min-width:140px">
+        <label>超时 (秒)</label>
+        <input id="timeout" type="number" value="30" min="5" max="120">
+      </div>
+    </div>
+    <div class="toolbar" style="margin-top:-4px">
+      <button class="btn btn-outline" id="btnPaste">📋 从剪贴板智能读取</button>
+      <button class="btn btn-outline" id="btnPasteManual" style="color:#64748b;border-color:#dbeafe">✏️ 手动粘贴</button>
+      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:13px;color:#64748b;">
+        <input type="checkbox" id="rememberConfig" style="width:16px;height:16px;accent-color:var(--primary);">
+        记住配置 (本地存储)
+      </label>
+      <span class="test-all-hint" id="pasteHint"></span>
+    </div>
+    <div class="toolbar">
+      <button class="btn btn-primary" id="btnFetchModels">📋 获取模型列表</button>
+      <button class="btn btn-success" id="btnTestSelected" disabled>⚡ 检测选中模型</button>
+      <button class="btn btn-outline" id="btnTestAllModels" disabled>🚀 检测全部</button>
+      <button class="btn btn-danger" id="btnStop" disabled>⏹ 停止检测</button>
+      <span style="display:flex;align-items:center;gap:8px;margin-left:8px;font-size:14px">
+        <button type="button" id="btnToggleConcurrency" style="padding:10px 20px;border:1.5px solid #dbeafe;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;background:#f8faff;color:#64748b;display:inline-flex;align-items:center;gap:6px;transition:all 0.2s">
+          <span id="concurrencyIcon" style="font-size:16px">☐</span> 并发检测
+        </button>
+        <span id="concurrencyBox" style="display:none">
+          <input id="concurrencyCount" type="number" value="0" min="0" max="100" style="width:80px;padding:10px 10px;text-align:center;font-size:14px;border-radius:8px;border:1.5px solid #dbeafe" placeholder="全部">
+          <span style="font-size:13px;color:#64748b">个同时（0=全部）</span>
+        </span>
+        <input type="checkbox" id="enableConcurrency" style="display:none">
+      </span>
+      <span class="spacer"></span>
+      <span class="test-all-hint" id="modelCount"></span>
+    </div>
+    <div style="margin-top:12px;margin-bottom:0">
+      <label style="display:block;font-size:13px;font-weight:500;color:#64748b;margin-bottom:6px">自定义模型（支持多个用逗号/空格/换行分隔）</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="customModelInput" type="text" placeholder="例如: gpt-4o, deepseek-chat, claude-3.5-sonnet" style="flex:1">
+        <button class="btn btn-outline" id="btnAddCustom" style="white-space:nowrap">➕ 添加</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-row" id="statsRow" style="display:none">
+    <div class="stat-box"><div class="stat-num" id="statTotal">0</div><div class="stat-label">总模型数</div></div>
+    <div class="stat-box"><div class="stat-num" id="statSuccess" style="color:#10b981">0</div><div class="stat-label">通过</div></div>
+    <div class="stat-box"><div class="stat-num" id="statFail" style="color:#ef4444">0</div><div class="stat-label">失败</div></div>
+    <div class="stat-box"><div class="stat-num" id="statAvg" style="color:#f59e0b">-</div><div class="stat-label">平均延迟</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">模型列表</div>
+    <div id="modelList">
+      <div class="empty-state">
+        <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        <p>请先配置 API 地址和密钥，然后点击「获取模型列表」</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">实时日志</div>
+    <div class="log-panel" id="logPanel">
+      <div class="log-entry"><span class="log-time">[--:--:--]</span> <span class="log-info">等待操作...</span></div>
+    </div>
+    <div class="toolbar">
+      <button class="btn btn-outline btn-sm" id="btnClearLogs">🗑 清空日志</button>
+      <button class="btn btn-outline btn-sm" id="btnExportLogs">📥 导出日志</button>
+    </div>
+  </div>
+</div>
+
+<div class="footer">砂糖酱 & 懒大猫 制作 · <a href="http://82.157.178.5/%E6%87%92%E5%A4%A7%E7%8C%AB%E7%9A%84%E4%B8%BB%E9%A1%B5.html" target="_blank" style="color:var(--primary-light);text-decoration:none">OpenAI兼容接口模型检测</a></div>
+
+<div id="pasteModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-title">📋 手动粘贴配置</div>
+    <div class="modal-desc" style="color:#166534;font-weight:500">请将包含 API 地址和密钥的内容粘贴到下方（支持 curl 命令、配置文本等）：</div>
+    <textarea id="pasteModalInput" class="modal-textarea" placeholder="例如:&#10;curl https://api.openai.com/v1/models &#10;-H &quot;Authorization: Bearer sk-xxxx&quot;&#10;&#10;或直接粘贴 API Key 和 URL"></textarea>
+    <div class="modal-btns">
+      <button class="btn btn-outline" id="btnPasteCancel">取消</button>
+      <button class="btn btn-primary" id="btnPasteConfirm">✨ 提取配置</button>
+    </div>
+  </div>
+</div>
+
+<div id="whyModal" class="modal-overlay">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-title">🔒 关于安全与隐私</div>
+    <div style="font-size:13px;line-height:1.8;color:var(--text)">
+      <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px 14px;margin-bottom:12px;color:#166534">
+        <b>🔒 你的密钥安全吗？</b><br>
+        本站只提供检测页面，所有 API 请求（获取模型列表、检测连通性）均在<b>你的本地浏览器</b>中直接执行，服务器仅托管静态页面文件，<b>不会记录、不会转发</b>任何密钥数据。
+      </div>
+      <div style="background:#eff6ff;border:1px solid #93c5fd;border-radius:8px;padding:12px 14px;color:#1e40af">
+        <b>💡 为什么有时需要手动粘贴？</b><br>
+        浏览器安全策略限制了网页自动读取剪贴板，需要 HTTPS 协议或用户主动授权才能使用。如果你的访问地址是 HTTP，自动读取会被浏览器拒绝，此时可使用手动粘贴功能。
+      </div>
+    </div>
+    <div class="modal-btns" style="margin-top:16px">
+      <button class="btn btn-primary" id="btnWhyClose">我知道了</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============ State Management ============
+let models = [];
+let testResults = {};
+let stopRequested = false;
+let testingModels = new Set();
+let activeControllers = new Set(); // 追踪所有进行中的 AbortController，用于真正中断请求
+let toastTimer = null;
+
+// ============ Utility Functions ============
+// XSS 防护转义
+const escapeHTML = (str) => String(str).replace(/[&<>'"]/g, tag => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+}[tag]));
+
+// 解析友好的 API 错误信息
+const parseApiError = (errText) => {
+  try {
+    const data = JSON.parse(errText);
+    return data?.error?.message || errText.slice(0, 100);
+  } catch (e) {
+    return errText.slice(0, 100);
+  }
+};
+
+// 从文本中提取 URL 和 Key 配置
+const extractConfigFromText = (raw) => {
+  const foundUrl = (raw.match(/(https?:\/\/[^\s"',}\]]+\/v1)(?:\/[^\s"',}\]]*)?/i)?.[1] || 
+                    raw.match(/(https?:\/\/[^\s"',}\]]+)/i)?.[1])?.replace(/\/+$/, '')?.replace(/\/(chat\/completions|completions|models|embeddings|v1\/?)$/i, '');
+  const foundKey = raw.match(/(?:api[_-]?key|key|token|authorization|bearer)\s*[:=]\s*["']?\s*(sk-[a-zA-Z0-9_\-]{20,})\s*["']?/i)?.[1] || 
+                   raw.match(/\b(sk-[a-zA-Z0-9_\-]{20,})\b/)?.[1] ||
+                   raw.match(/\b(Bearer\s+[a-zA-Z0-9_\-]{20,})\b/i)?.[1]?.replace(/^Bearer\s+/i, '');
+  return { url: foundUrl || null, key: foundKey || null };
+};
+
+// 应用提取到的配置到表单
+const applyExtractedConfig = (raw, hint) => {
+  const { url, key } = extractConfigFromText(raw);
+  const msgs = [];
+  if (url) { document.getElementById('baseUrl').value = url; msgs.push(`URL: ${url}`); }
+  if (key) { document.getElementById('apiKey').value = key; msgs.push(`Key: ${key.slice(0, 8)}...`); }
+  if (msgs.length > 0) {
+    hint.textContent = `✅ 已提取 — ${msgs.join(' | ')}`;
+    showToast('✅ 配置提取成功', 'success');
+    log(`📋 智能提取: ${msgs.join(' | ')}`, 'success');
+    saveConfigToLocal();
+  } else {
+    hint.textContent = '⚠️ 未识别到 URL 或 Key';
+    showToast('⚠️ 未识别到配置', 'warn');
+  }
+};
+
+// 手动粘贴弹窗
+const showPasteModal = () => {
+  document.getElementById('pasteModalInput').value = '';
+  document.getElementById('pasteModal').classList.add('show');
+  setTimeout(() => document.getElementById('pasteModalInput').focus(), 100);
+};
+const hidePasteModal = () => document.getElementById('pasteModal').classList.remove('show');
+
+// ============ UI & Logging ============
+const showToast = (msg, type = 'info') => {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = `toast ${type}`;
+  clearTimeout(toastTimer);
+  requestAnimationFrame(() => toast.classList.add('show'));
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+};
+
+const log = (msg, type = 'info') => {
+  const panel = document.getElementById('logPanel');
+  const now = new Date().toLocaleTimeString('zh-CN', { hour12: false });
+  const div = document.createElement('div');
+  div.className = 'log-entry';
+  // 这里引入了 escapeHTML 防御日志注入
+  div.innerHTML = `<span class="log-time">[${now}]</span> <span class="log-${escapeHTML(type)}">${escapeHTML(msg)}</span>`;
+  panel.appendChild(div);
+  // 使用 requestAnimationFrame 优化滚动性能
+  requestAnimationFrame(() => {
+    panel.scrollTop = panel.scrollHeight;
+  });
+};
+
+const updateTestingToast = () => {
+  const t = document.getElementById('testingToast');
+  if (testingModels.size === 0) {
+    t.classList.remove('show');
+    return;
+  }
+  const names = Array.from(testingModels);
+  const text = names.length === 1 
+    ? `正在检测 ${names[0]}` 
+    : `正在检测 ${names[0]} 等 ${names.length} 个模型`;
+  document.getElementById('testingToastText').textContent = text;
+  t.classList.add('show');
+};
+
+const showTestingToast = (modelName) => { testingModels.add(modelName); updateTestingToast(); };
+const hideTestingToast = (modelName) => { 
+  if (modelName) testingModels.delete(modelName); 
+  else testingModels.clear(); 
+  updateTestingToast(); 
+};
+
+// ============ Configuration & LocalStorage ============
+const getBaseUrl = () => {
+  let url = document.getElementById('baseUrl').value.trim() || 'https://api.openai.com/v1';
+  url = url.replace(/\/+$/, '');
+  if (document.getElementById('autoV1').checked && !/\/v\d+$/.test(url)) {
+    url += '/v1';
+  }
+  return url;
+};
+
+const getHeaders = () => ({
+  'Authorization': `Bearer ${document.getElementById('apiKey').value.trim()}`,
+  'Content-Type': 'application/json'
+});
+
+const saveConfigToLocal = () => {
+  if (document.getElementById('rememberConfig').checked) {
+    localStorage.setItem('openai_tester_url', document.getElementById('baseUrl').value);
+    localStorage.setItem('openai_tester_key', document.getElementById('apiKey').value);
+    localStorage.setItem('openai_tester_timeout', document.getElementById('timeout').value);
+    localStorage.setItem('openai_tester_remember', 'true');
+  } else {
+    localStorage.clear();
+  }
+};
+
+const loadConfigFromLocal = () => {
+  if (localStorage.getItem('openai_tester_remember') === 'true') {
+    document.getElementById('rememberConfig').checked = true;
+    document.getElementById('baseUrl').value = localStorage.getItem('openai_tester_url') || '';
+    document.getElementById('apiKey').value = localStorage.getItem('openai_tester_key') || '';
+    document.getElementById('timeout').value = localStorage.getItem('openai_tester_timeout') || '30';
+  }
+};
+
+// ============ Core Actions ============
+const fetchModels = async () => {
+  const apiKey = document.getElementById('apiKey').value.trim();
+  if (!apiKey) { log('❌ 请先填写 API Key', 'error'); showToast('❌ 请先填写 API Key', 'error'); return; }
+
+  const btn = document.getElementById('btnFetchModels');
+  btn.disabled = true;
+  btn.textContent = '⏳ 获取中...';
+  
+  saveConfigToLocal(); // 每次请求时自动保存配置
+
+  const url = `${getBaseUrl()}/models`;
+  log(`📡 请求模型列表: ${url}`, 'cmd');
+  showToast('📡 正在获取模型列表...', 'info');
+
+  try {
+    const resp = await fetch(url, { headers: getHeaders() });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${parseApiError(await resp.text())}`);
+    
+    const data = await resp.json();
+    
+    // 过滤掉已知的明显不支持 Chat 的模型 (如 embedding, dall-e, whisper)，以防误报失败
+    const nonChatPrefixes = ['dall-e', 'tts', 'whisper', 'text-embedding', 'babbage', 'davinci'];
+    models = (data.data || [])
+      .filter(m => !nonChatPrefixes.some(prefix => m.id.startsWith(prefix)))
+      .sort((a, b) => a.id.localeCompare(b.id));
+      
+    testResults = {};
+    log(`✅ 成功获取 ${models.length} 个对话模型 (已过滤非对话模型)`, 'success');
+    showToast(`✅ 成功获取 ${models.length} 个模型`, 'success');
+    renderModels();
+    updateButtons();
+  } catch (e) {
+    log(`❌ 获取模型失败: ${e.message}`, 'error');
+    showToast('❌ 获取模型失败', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📋 获取模型列表';
+  }
+};
+
+const testModel = async (modelId) => {
+  const url = `${getBaseUrl()}/chat/completions`;
+  const timeoutMs = parseInt(document.getElementById('timeout').value) * 1000;
+  
+  const controller = new AbortController();
+  activeControllers.add(controller); // 加入全局集合，方便中断
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const start = performance.now();
+
+  try {
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ model: modelId, messages: [{ role: 'user', content: 'Hi' }], max_tokens: 5, stream: false }),
+      signal: controller.signal
+    });
+    
+    clearTimeout(timer);
+    activeControllers.delete(controller); // 请求完成，移除 controller
+    const latency = Math.round(performance.now() - start);
+    
+    if (resp.ok) {
+      return { success: true, latency, status: resp.status };
+    } else {
+      const errText = await resp.text();
+      return { success: false, latency, status: resp.status, error: parseApiError(errText) };
+    }
+  } catch (e) {
+    clearTimeout(timer);
+    activeControllers.delete(controller);
+    const latency = Math.round(performance.now() - start);
+    return { success: false, latency, error: e.name === 'AbortError' ? '请求中断/超时' : e.message };
+  }
+};
+
+const runTests = async (modelIds) => {
+  stopRequested = false;
+  document.getElementById('btnTestSelected').disabled = true;
+  document.getElementById('btnTestAllModels').disabled = true;
+  document.getElementById('btnStop').disabled = false;
+
+  log(`🚀 开始批量检测 ${modelIds.length} 个模型...`, 'cmd');
+  showToast(`🚀 正在批量检测 ${modelIds.length} 个模型...`, 'info');
+  const startAll = performance.now();
+
+  const enableConcurrency = document.getElementById('enableConcurrency').checked;
+  const concurrencyInput = parseInt(document.getElementById('concurrencyCount').value) || 0;
+  const batchSize = enableConcurrency && concurrencyInput > 0 ? concurrencyInput : (enableConcurrency ? modelIds.length : 1);
+
+  // 初始化 UI 状态
+  modelIds.forEach((id, i) => {
+    const idx = models.findIndex(m => m.id === id);
+    const sc = document.getElementById(`status-${idx}`);
+    if (sc) {
+      if (enableConcurrency || i === 0) {
+        sc.innerHTML = '<span class="status-badge testing"><span class="spinner"></span>检测中</span>';
+      } else {
+        sc.innerHTML = '<span class="status-badge queuing"><span class="status-dot pending"></span>排队中</span>';
+      }
+    }
+  });
+
+  // 批量执行
+  for (let i = 0; i < modelIds.length; i += batchSize) {
+    if (stopRequested) break;
+    const batch = modelIds.slice(i, i + batchSize);
+    
+    await Promise.all(batch.map(async (id) => {
+      if (stopRequested) return;
+      showTestingToast(id);
+      
+      const idx = models.findIndex(m => m.id === id);
+      const result = await testModel(id);
+      hideTestingToast(id);
+      
+      if (idx >= 0) updateRow(idx, result);
+      
+      if (result.success) {
+        log(`✅ ${id} — 通过 (${result.latency}ms)`, 'success');
+      } else {
+        log(`❌ ${id} — 失败 (${result.latency}ms) - ${result.error}`, 'error');
+      }
+      updateStats();
+    }));
+
+    // 更新非并发模式下的排队状态 UI
+    if (!enableConcurrency && i + batchSize < modelIds.length && !stopRequested) {
+      const nextBatch = modelIds.slice(i + batchSize, i + batchSize * 2);
+      nextBatch.forEach(id => {
+        const idx = models.findIndex(m => m.id === id);
+        if (idx >= 0) document.getElementById(`status-${idx}`).innerHTML = '<span class="status-badge testing"><span class="spinner"></span>检测中</span>';
+      });
+    }
+  }
+
+  hideTestingToast();
+  document.getElementById('btnStop').disabled = true;
+
+  const totalMs = Math.round(performance.now() - startAll);
+  const results = modelIds.map(id => testResults[id]).filter(Boolean);
+  const pass = results.filter(r => r.success).length;
+  const tested = results.length;
+
+  if (stopRequested) {
+    log(`⏹ 检测已停止，已完成 ${tested}/${modelIds.length}，通过 ${pass}，耗时 ${totalMs}ms`, 'warn');
+    showToast(`⏹ 检测已停止 (${tested}/${modelIds.length})`, 'warn');
+  } else {
+    log(`🏁 批量检测完成！通过 ${pass}/${modelIds.length}，耗时 ${totalMs}ms`, 'cmd');
+    showToast(`🏁 检测完成！通过 ${pass}/${modelIds.length}`, pass > 0 ? 'success' : 'error');
+  }
+
+  document.getElementById('btnTestSelected').disabled = false;
+  document.getElementById('btnTestAllModels').disabled = false;
+};
+
+// ============ Rendering & Events ============
+const renderModels = () => {
+  const container = document.getElementById('modelList');
+  if (models.length === 0) {
+    container.innerHTML = '<div class="empty-state"><p>未获取到模型</p></div>';
+    return;
+  }
+
+  let html = `<table class="model-table"><thead><tr>
+    <th class="checkbox-cell"><input type="checkbox" id="selectAll" checked></th>
+    <th>#</th><th>模型 ID</th><th>状态</th><th>延迟</th><th>操作</th>
+    </tr></thead><tbody>`;
+
+  models.forEach((m, i) => {
+    html += `<tr>
+      <td class="checkbox-cell"><input type="checkbox" class="model-cb" data-model="${escapeHTML(m.id)}" checked></td>
+      <td>${i + 1}</td>
+      <td><span class="model-name">${escapeHTML(m.id)}</span></td>
+      <td id="status-${i}"><span class="status-badge pending"><span class="status-dot pending"></span>待测</span></td>
+      <td id="latency-${i}"><span class="latency">-</span></td>
+      <td><button class="btn btn-primary btn-sm test-single-btn" data-id="${escapeHTML(m.id)}" data-idx="${i}">检测</button></td>
+      </tr>`;
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+  
+  document.getElementById('modelCount').textContent = `共 ${models.length} 个模型`;
+  
+  // 重新绑定事件
+  document.getElementById('selectAll').addEventListener('change', (e) => {
+    document.querySelectorAll('.model-cb').forEach(c => c.checked = e.target.checked);
+  });
+  document.querySelectorAll('.test-single-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const { id, idx } = e.target.dataset;
+      const statusCell = document.getElementById(`status-${idx}`);
+      statusCell.innerHTML = '<span class="status-badge testing"><span class="spinner"></span>检测中</span>';
+      showTestingToast(id);
+      log(`🔍 检测模型: ${id}`, 'cmd');
+
+      const result = await testModel(id);
+      hideTestingToast(id);
+      updateRow(idx, result);
+      updateStats();
+
+      if (result.success) {
+        log(`✅ ${id} — 通过 (${result.latency}ms)`, 'success');
+        showToast(`✅ ${id} — 通过`, 'success');
+      } else {
+        log(`❌ ${id} — 失败 (${result.latency}ms) ${result.error}`, 'error');
+        showToast(`❌ ${id} — 失败`, 'error');
+      }
+    });
+  });
+};
+
+const updateRow = (index, result) => {
+  testResults[models[index].id] = result;
+  const statusCell = document.getElementById(`status-${index}`);
+  const latencyCell = document.getElementById(`latency-${index}`);
+  
+  if (result.success) {
+    statusCell.innerHTML = '<span class="status-badge success"><span class="status-dot success"></span>通过</span>';
+  } else {
+    statusCell.innerHTML = '<span class="status-badge error" title="' + escapeHTML(result.error) + '"><span class="status-dot error"></span>失败</span>';
+  }
+  latencyCell.innerHTML = `<span class="latency">${result.latency}ms</span>`;
+};
+
+const updateStats = () => {
+  const results = Object.values(testResults);
+  const total = results.length;
+  const success = results.filter(r => r.success).length;
+  const avg = total > 0 ? Math.round(results.reduce((s, r) => s + r.latency, 0) / total) : 0;
+  
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statSuccess').textContent = success;
+  document.getElementById('statFail').textContent = total - success;
+  document.getElementById('statAvg').textContent = total > 0 ? `${avg}ms` : '-';
+};
+
+const updateButtons = () => {
+  const hasModels = models.length > 0;
+  document.getElementById('btnTestSelected').disabled = !hasModels;
+  document.getElementById('btnTestAllModels').disabled = !hasModels;
+  document.getElementById('statsRow').style.display = hasModels ? 'flex' : 'none';
+};
+
+// ============ Event Listeners Setup ============
+document.addEventListener('DOMContentLoaded', () => {
+  loadConfigFromLocal();
+
+  document.getElementById('btnFetchModels').addEventListener('click', fetchModels);
+  
+  document.getElementById('btnTestSelected').addEventListener('click', () => {
+    const selected = Array.from(document.querySelectorAll('.model-cb:checked')).map(c => c.dataset.model);
+    if (selected.length === 0) { log('⚠️ 请至少选择一个模型', 'warn'); showToast('⚠️ 请选择模型', 'warn'); return; }
+    runTests(selected);
+  });
+  
+  document.getElementById('btnTestAllModels').addEventListener('click', () => runTests(models.map(m => m.id)));
+  
+  // 核心优化：真正的终止请求
+  document.getElementById('btnStop').addEventListener('click', () => {
+    stopRequested = true;
+    activeControllers.forEach(c => c.abort()); // 掐断正在进行的 fetch
+    activeControllers.clear();
+    log('⏹ 用户请求停止检测，已向底层发送中断指令', 'warn');
+    showToast('⏹ 正在停止...', 'warn');
+  });
+
+  document.getElementById('btnToggleKey').addEventListener('click', (e) => {
+    const input = document.getElementById('apiKey');
+    const btn = e.target;
+    const isPwd = input.type === 'password';
+    input.type = isPwd ? 'text' : 'password';
+    btn.style.opacity = isPwd ? '0.8' : '0.5';
+  });
+
+  document.getElementById('btnToggleConcurrency').addEventListener('click', () => {
+    const cb = document.getElementById('enableConcurrency');
+    const btn = document.getElementById('btnToggleConcurrency');
+    const icon = document.getElementById('concurrencyIcon');
+    const box = document.getElementById('concurrencyBox');
+    cb.checked = !cb.checked;
+    
+    if (cb.checked) {
+      btn.style.background = 'linear-gradient(135deg, #2563eb, #1d4ed8)';
+      btn.style.color = '#fff';
+      btn.style.borderColor = '#2563eb';
+      btn.style.boxShadow = '0 2px 8px rgba(37,99,235,0.3)';
+      icon.textContent = '☑';
+      box.style.display = 'inline-flex';
+      box.style.alignItems = 'center';
+      box.style.gap = '6px';
+    } else {
+      btn.style.background = '#f8faff';
+      btn.style.color = '#64748b';
+      btn.style.borderColor = '#dbeafe';
+      btn.style.boxShadow = 'none';
+      icon.textContent = '☐';
+      box.style.display = 'none';
+    }
+  });
+
+  document.getElementById('btnAddCustom').addEventListener('click', () => {
+    const input = document.getElementById('customModelInput');
+    const raw = input.value.trim();
+    if (!raw) { log('⚠️ 请输入模型 ID', 'warn'); return; }
+
+    const ids = raw.split(/[,，\s\n]+/).map(s => s.trim()).filter(Boolean);
+    let added = 0;
+    ids.forEach(id => {
+      if (!models.some(m => m.id === id)) { models.push({ id, owned_by: 'custom' }); added++; }
+    });
+
+    if (added > 0) {
+      models.sort((a, b) => a.id.localeCompare(b.id));
+      log(`➕ 已添加 ${added} 个自定义模型`, 'success');
+      showToast(`➕ 已添加 ${added} 个模型`, 'success');
+      renderModels();
+      updateButtons();
+    }
+    input.value = '';
+  });
+
+  document.getElementById('btnPaste').addEventListener('click', async () => {
+    const hint = document.getElementById('pasteHint');
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text || !text.trim()) throw new Error('剪贴板为空');
+      applyExtractedConfig(text.trim(), hint);
+    } catch (e) {
+      const errMsg = e.name === 'NotAllowedError'
+        ? '浏览器拒绝了剪贴板访问权限（需要 HTTPS 或 localhost）'
+        : e.name === 'NotFoundError'
+        ? '系统剪贴板为空或无可用数据'
+        : e.name === 'SecurityError'
+        ? '安全限制：非安全上下文（需 HTTPS）无法访问剪贴板'
+        : `${e.name || 'Error'}: ${e.message || '未知错误'}`;
+      hint.textContent = `⚠️ 无法读取剪贴板 — ${errMsg}`;
+      showToast(`⚠️ 剪贴板读取失败，请手动输入`, 'error');
+      log(`❌ 剪贴板读取失败: [${e.name}] ${errMsg}`, 'error');
+      showPasteModal();
+    }
+    setTimeout(() => { if (hint.textContent.includes('⚠️')) hint.textContent = ''; }, 5000);
+  });
+
+  document.getElementById('btnPasteCancel').addEventListener('click', hidePasteModal);
+  document.getElementById('pasteModal').addEventListener('click', (e) => { if (e.target === e.currentTarget) hidePasteModal(); });
+  document.getElementById('btnPasteManual').addEventListener('click', showPasteModal);
+  document.getElementById('btnWhyHeader').addEventListener('click', () => {
+    document.getElementById('whyModal').classList.add('show');
+  });
+  document.getElementById('btnWhyClose').addEventListener('click', () => {
+    document.getElementById('whyModal').classList.remove('show');
+  });
+  document.getElementById('whyModal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) e.target.classList.remove('show');
+  });
+  document.getElementById('btnPasteConfirm').addEventListener('click', () => {
+    const raw = document.getElementById('pasteModalInput').value.trim();
+    const hint = document.getElementById('pasteHint');
+    if (!raw) { showToast('⚠️ 请先粘贴内容', 'warn'); return; }
+    applyExtractedConfig(raw, hint);
+    hidePasteModal();
+  });
+
+  document.getElementById('btnClearLogs').addEventListener('click', () => {
+    document.getElementById('logPanel').innerHTML = '';
+    log('日志已清空', 'info');
+  });
+
+  document.getElementById('btnExportLogs').addEventListener('click', () => {
+    const text = Array.from(document.querySelectorAll('.log-entry')).map(e => e.textContent).join('\n');
+    const blob = new Blob([text], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `openai-test-${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.log`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    log('📥 日志已导出', 'success');
+  });
+
+  document.getElementById('rememberConfig').addEventListener('change', saveConfigToLocal);
+  document.getElementById('apiKey').addEventListener('keydown', e => e.key === 'Enter' && fetchModels());
+  document.getElementById('customModelInput').addEventListener('keydown', e => e.key === 'Enter' && document.getElementById('btnAddCustom').click());
+});
+</script>
+</body>
+</html>

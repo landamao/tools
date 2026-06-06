@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>懒大猫的工具箱</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧰</text></svg>">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0f172a; color: #e2e8f0; min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .stars {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0;
+  }
+  .star {
+    position: absolute; border-radius: 50%; background: white;
+    animation: twinkle var(--dur) ease-in-out infinite alternate;
+  }
+  @keyframes twinkle { from { opacity: var(--min); } to { opacity: var(--max); } }
+
+  .container { position: relative; z-index: 1; width: 100%; max-width: 720px; padding: 60px 20px 40px; }
+
+  .header { text-align: center; margin-bottom: 48px; }
+  .header h1 {
+    font-size: 32px; font-weight: 700;
+    background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header p { color: #64748b; font-size: 14px; margin-top: 8px; }
+
+  .tools-grid { display: flex; flex-direction: column; gap: 16px; }
+
+  .tool-card {
+    background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(148, 163, 184, 0.12);
+    border-radius: 14px; padding: 24px 28px; cursor: pointer;
+    transition: all 0.25s ease; text-decoration: none; color: inherit;
+    display: flex; align-items: center; gap: 18px;
+    backdrop-filter: blur(8px);
+  }
+  .tool-card:hover {
+    border-color: rgba(96, 165, 250, 0.4);
+    box-shadow: 0 4px 24px rgba(96, 165, 250, 0.12);
+    transform: translateY(-2px);
+  }
+  .tool-icon {
+    width: 48px; height: 48px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; flex-shrink: 0;
+  }
+  .tool-icon.blue { background: rgba(96, 165, 250, 0.15); }
+  .tool-icon.purple { background: rgba(167, 139, 250, 0.15); }
+  .tool-info h2 { font-size: 16px; font-weight: 600; color: #f1f5f9; }
+  .tool-info p { font-size: 13px; color: #64748b; margin-top: 4px; line-height: 1.5; }
+  .tool-arrow { margin-left: auto; color: #475569; font-size: 18px; transition: color 0.2s; }
+  .tool-card:hover .tool-arrow { color: #60a5fa; }
+
+  .footer {
+    margin-top: auto; padding: 24px 0 20px; text-align: center;
+    font-size: 12px; color: #334155;
+  }
+  .footer a {
+    color: #334155; text-decoration: none; transition: color 0.2s;
+    border-bottom: 1px dashed #334155;
+  }
+  .footer a:hover { color: #64748b; border-bottom-color: #64748b; }
+</style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+
+<div class="container">
+  <div class="header">
+    <h1>懒大猫的工具箱</h1>
+    <p>一些好用的小工具 ♡</p>
+  </div>
+
+  <div class="tools-grid">
+    <a class="tool-card" href="openai-api-tester.html">
+      <div class="tool-icon blue">🔍</div>
+      <div class="tool-info">
+        <h2>OpenAI 接口连通性检测</h2>
+        <p>测试 OpenAI 兼容 API 的连通性，支持自定义地址和模型</p>
+      </div>
+      <span class="tool-arrow">›</span>
+    </a>
+
+    <a class="tool-card" href="dict_tree_formatter.html">
+      <div class="tool-icon purple">🌳</div>
+      <div class="tool-info">
+        <h2>字典层级格式化工具</h2>
+        <p>将嵌套字典/JSON 树形结构格式化为可读的层级视图</p>
+      </div>
+      <span class="tool-arrow">›</span>
+    </a>
+  </div>
+</div>
+
+<div class="footer">
+  <a href="懒大猫的主页.html">♡</a>
+</div>
+
+<script>
+  // 星空粒子
+  const stars = document.getElementById('stars');
+  for (let i = 0; i < 80; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const size = Math.random() * 2 + 0.5;
+    s.style.cssText = `
+      width:${size}px;height:${size}px;
+      left:${Math.random()*100}%;top:${Math.random()*100}%;
+      --dur:${Math.random()*3+2}s;--min:${Math.random()*0.3};--max:${Math.random()*0.5+0.5};
+      animation-delay:${Math.random()*3}s;
+    `;
+    stars.appendChild(s);
+  }
+</script>
+</body>
+</html>
