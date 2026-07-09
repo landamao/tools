@@ -357,7 +357,7 @@
     applyBrightness(v);
     localStorage.setItem('toolsBrightness', brightnessSlider.value);
   });
-  for (let i = 0; i < 360; i++) {
+  for (let i = 0; i < 180; i++) {
     const s = document.createElement('div');
     s.className = 'star';
     const type = Math.random();
@@ -372,7 +372,7 @@
     `;
     stars.appendChild(s);
   }
-  const bigStars = [
+  const baseBigStars = [
     { left: 8, top: 11, size: 30, rotate: -12, dur: 3.8 },
     { left: 86, top: 13, size: 26, rotate: 18, dur: 4.4 },
     { left: 5, top: 54, size: 24, rotate: 10, dur: 5.2 },
@@ -381,6 +381,19 @@
     { left: 78, top: 83, size: 28, rotate: -8, dur: 5.6 },
     { left: 50, top: 8, size: 20, rotate: 14, dur: 4.6 }
   ];
+  const desktopBigStars = [
+    { left: 30, top: 18, size: 22, rotate: -24, dur: 4.9 },
+    { left: 68, top: 20, size: 24, rotate: 28, dur: 5.1 },
+    { left: 14, top: 34, size: 20, rotate: 16, dur: 4.3 },
+    { left: 82, top: 34, size: 22, rotate: -10, dur: 5.4 },
+    { left: 33, top: 88, size: 26, rotate: 12, dur: 4.7 },
+    { left: 62, top: 90, size: 23, rotate: -20, dur: 5.8 },
+    { left: 96, top: 73, size: 20, rotate: 24, dur: 4.5 },
+    { left: 3, top: 86, size: 21, rotate: -16, dur: 5.3 }
+  ];
+  const bigStars = window.matchMedia('(min-width: 1100px)').matches
+    ? baseBigStars.concat(desktopBigStars)
+    : baseBigStars;
   bigStars.forEach(item => {
     const s = document.createElement('div');
     s.className = 'big-star';
