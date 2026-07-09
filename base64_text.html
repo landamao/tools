@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Base64 文本转换</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:linear-gradient(135deg,#0f172a 0%,#111827 58%,#020617 100%);color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans SC',sans-serif;display:flex;align-items:center;justify-content:center;padding:24px}.stars{position:fixed;inset:0;pointer-events:none;overflow:hidden}.stars::before,.stars::after{content:'✧  ♡  ✦  ♡  ✧';position:absolute;color:rgba(191,219,254,.22);font-size:34px;letter-spacing:36px;white-space:nowrap}.stars::before{left:8%;top:12%}.stars::after{right:4%;bottom:12%;transform:rotate(-8deg)}.card{position:relative;width:min(920px,100%);background:rgba(30,41,59,.72);border:1px solid rgba(148,163,184,.16);border-radius:22px;padding:28px;box-shadow:0 18px 44px rgba(0,0,0,.28)}h1{margin:0 0 8px;font-size:28px;background:linear-gradient(135deg,#60a5fa,#a78bfa,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}.tip{color:#94a3b8;margin:0 0 22px;line-height:1.7}.grid{display:grid;grid-template-columns:1fr;gap:18px}@media(min-width:820px){.grid{grid-template-columns:1fr 1fr}}.label{margin:0 0 8px;color:#cbd5e1;font-weight:600}textarea{width:100%;height:260px;background:#111827;color:#e5e7eb;border:1px solid #334155;border-radius:14px;padding:14px;font-size:15px;line-height:1.6;resize:vertical}textarea:focus{outline:none;border-color:#60a5fa;box-shadow:0 0 0 3px rgba(96,165,250,.15)}.buttons{display:flex;flex-wrap:wrap;gap:12px;margin:18px 0 0}button,a{border:0;border-radius:12px;padding:11px 16px;background:rgba(96,165,250,.16);color:#bfdbfe;text-decoration:none;cursor:pointer;font-size:14px}button:hover,a:hover{background:rgba(96,165,250,.28)}.copy{background:rgba(167,139,250,.18);color:#ddd6fe}.clear{background:rgba(244,114,182,.14);color:#fbcfe8}.status{min-height:22px;margin-top:12px;color:#94a3b8;font-size:13px}.status.err{color:#fca5a5}.status.ok{color:#86efac}</style>
+</head>
+<body>
+<div class="stars"></div>
+<main class="card">
+  <h1>Base64 文本转换</h1>
+  <p class="tip">只处理文本内容：左边输入普通文本或 Base64，点击按钮后在右边得到结果。</p>
+  <div class="grid">
+    <section>
+      <p class="label">输入文本</p>
+      <textarea id="input" placeholder="在这里输入要转换的文本"></textarea>
+    </section>
+    <section>
+      <p class="label">转换结果</p>
+      <textarea id="output" readonly placeholder="结果会显示在这里"></textarea>
+    </section>
+  </div>
+  <div class="buttons">
+    <button onclick="encodeText()">文本转 Base64</button>
+    <button onclick="decodeText()">Base64 转文本</button>
+    <button class="copy" onclick="copyOutput()">复制结果</button>
+    <button class="clear" onclick="clearAll()">清空</button>
+    <a href="/">返回工具箱</a>
+  </div>
+  <div id="status" class="status"></div>
+</main>
+<script>
+const input=document.getElementById('input');
+const output=document.getElementById('output');
+const statusBox=document.getElementById('status');
+function setStatus(text,type=''){
+  statusBox.textContent=text;
+  statusBox.className='status '+type;
+}
+function encodeText(){
+  try{
+    const bytes=new TextEncoder().encode(input.value);
+    let binary='';
+    for(const b of bytes) binary+=String.fromCharCode(b);
+    output.value=btoa(binary);
+    setStatus('已转换为 Base64','ok');
+  }catch(e){
+    output.value='';
+    setStatus('编码失败：'+e.message,'err');
+  }
+}
+function decodeText(){
+  try{
+    const clean=input.value.trim().replace(/\s+/g,'');
+    const binary=atob(clean);
+    const bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));
+    output.value=new TextDecoder('utf-8',{fatal:true}).decode(bytes);
+    setStatus('已解码为文本','ok');
+  }catch(e){
+    output.value='';
+    setStatus('解码失败：请输入有效的 UTF-8 Base64 文本','err');
+  }
+}
+async function copyOutput(){
+  if(!output.value){setStatus('没有可复制的结果','err');return;}
+  try{await navigator.clipboard.writeText(output.value);setStatus('结果已复制','ok');}
+  catch(e){setStatus('复制失败，请手动复制','err');}
+}
+function clearAll(){input.value='';output.value='';setStatus('');input.focus();}
+</script>
+</body>
+</html>

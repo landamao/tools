@@ -3,27 +3,131 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>懒大猫的工具箱</title>
+<title>懒大猫的工具箱和网址导航</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧰</text></svg>">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: #0f172a; color: #e2e8f0; min-height: 100vh;
+    --light-brightness: 0;
+    background: linear-gradient(135deg, #0f172a 0%, #111827 55%, #020617 100%);
+    color: #e2e8f0; min-height: 100vh;
     display: flex; flex-direction: column; align-items: center;
+    transition: background 0.3s ease;
+  }
+  body.light-on {
+    --light-brightness: 1;
+    background:
+      radial-gradient(circle at 16% 18%, rgba(219, 234, 254, calc(0.46 * var(--light-brightness))) 0%, rgba(147, 197, 253, calc(0.40 * var(--light-brightness))) 20%, rgba(96, 165, 250, calc(0.28 * var(--light-brightness))) 46%, rgba(59, 130, 246, calc(0.16 * var(--light-brightness))) 78%, rgba(30, 64, 175, calc(0.10 * var(--light-brightness))) 100%),
+      radial-gradient(ellipse at 70% 65%, rgba(56, 189, 248, calc(0.24 * var(--light-brightness))) 0%, rgba(59, 130, 246, calc(0.18 * var(--light-brightness))) 42%, rgba(30, 64, 175, calc(0.12 * var(--light-brightness))) 100%),
+      linear-gradient(135deg, #1e3a8a 0%, #1e40af 36%, #172554 72%, #10203f 100%);
+  }
+  body.light-on .blue-star,
+  body.light-on .blue-star::before,
+  body.light-on .blue-star::after {
+    opacity: var(--light-brightness);
+  }
+  .light-toggle {
+    width: 40px; height: 40px;
+    border: 1px solid rgba(191, 219, 254, 0.35); border-radius: 50%;
+    background: rgba(15, 23, 42, 0.62); color: #fde68a; font-size: 20px;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.22s ease; flex-shrink: 0;
+    box-shadow: 0 0 18px rgba(96, 165, 250, 0.22);
+  }
+  .light-toggle:hover { transform: translateY(-1px); border-color: rgba(250, 204, 21, 0.55); }
+  body:not(.light-on) .light-toggle {
+    color: #64748b; border-color: rgba(100, 116, 139, 0.35);
+    box-shadow: none;
+  }
+  .brightness-control {
+    display: inline-flex; align-items: center; gap: 8px;
+    opacity: 0; pointer-events: none; max-width: 0; overflow: hidden;
+    transition: all 0.25s ease;
+  }
+  body.light-on .brightness-control {
+    opacity: 1; pointer-events: auto; max-width: 160px;
+  }
+  .brightness-slider {
+    -webkit-appearance: none; appearance: none;
+    width: 90px; height: 5px; border-radius: 5px;
+    background: linear-gradient(to right, #1e3a8a, #60a5fa, #bfdbfe);
+    outline: none; cursor: pointer;
+  }
+  .brightness-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #fde68a; border: 2px solid #bfdbfe;
+    cursor: pointer; box-shadow: 0 0 8px rgba(250, 204, 21, 0.6);
+  }
+  .brightness-slider::-moz-range-thumb {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #fde68a; border: 2px solid #bfdbfe;
+    cursor: pointer; box-shadow: 0 0 8px rgba(250, 204, 21, 0.6);
+  }
+  .blue-star {
+    position: fixed; top: 12%; left: 12%; width: 150px; height: 150px;
+    border-radius: 50%; pointer-events: none; z-index: 0;
+    opacity: 0;
+    background:
+      radial-gradient(circle, #ffffff 0 8%, #bfdbfe 9% 24%, #60a5fa 25% 48%, rgba(37, 99, 235, 0.4) 49% 70%, transparent 71%);
+    box-shadow:
+      0 0 34px rgba(191, 219, 254, 0.95),
+      0 0 120px rgba(96, 165, 250, 0.72),
+      0 0 300px rgba(37, 99, 235, 0.42),
+      0 0 620px rgba(14, 165, 233, 0.26),
+      0 0 980px rgba(59, 130, 246, 0.16);
+    transition: opacity 0.3s ease;
+  }
+  .blue-star::before,
+  .blue-star::after {
+    content: ''; position: absolute; inset: -120px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(125, 211, 252, 0.22), transparent 64%);
+  }
+  .blue-star::after { inset: -220px; opacity: 0.55; }
+  @keyframes starPulse {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.04); filter: brightness(1.18); }
   }
   .stars {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0;
   }
   .star {
-    position: absolute; border-radius: 50%; background: white;
+    position: absolute; border-radius: 50%;
+    background: radial-gradient(circle, #ffffff 0 35%, #bfdbfe 55%, rgba(147, 197, 253, 0.25) 100%);
+    box-shadow: 0 0 var(--glow) rgba(191, 219, 254, 0.95);
     animation: twinkle var(--dur) ease-in-out infinite alternate;
   }
-  @keyframes twinkle { from { opacity: var(--min); } to { opacity: var(--max); } }
+  .big-star {
+    position: absolute;
+    color: rgba(219, 234, 254, 0.9);
+    font-size: var(--size);
+    line-height: 1;
+    text-shadow:
+      0 0 10px rgba(191, 219, 254, 0.95),
+      0 0 24px rgba(96, 165, 250, 0.65),
+      0 0 48px rgba(37, 99, 235, 0.42);
+    animation: bigStarTwinkle var(--dur) ease-in-out infinite alternate;
+  }
+  @keyframes twinkle {
+    from { opacity: var(--min); transform: scale(0.88); }
+    to { opacity: var(--max); transform: scale(1.12); }
+  }
+  @keyframes bigStarTwinkle {
+    from { opacity: 0.36; transform: rotate(var(--rotate)) scale(0.92); }
+    to { opacity: 0.95; transform: rotate(var(--rotate)) scale(1.12); }
+  }
 
   .container { position: relative; z-index: 1; width: 100%; max-width: 720px; padding: 60px 20px 40px; }
 
   .header { text-align: center; margin-bottom: 48px; }
+  .header-title {
+    display: flex; align-items: center; justify-content: center;
+  }
+  .header-subtitle {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 14px; flex-wrap: wrap; margin-top: 8px;
+  }
   .header h1 {
     font-size: 32px; font-weight: 700;
     background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6);
@@ -32,14 +136,39 @@
   }
   .header p { color: #64748b; font-size: 14px; margin-top: 8px; }
 
-  .tools-grid { display: flex; flex-direction: column; gap: 16px; }
+  .nav-section { margin-top: 26px; }
+  .nav-section:first-of-type { margin-top: 0; }
+  .section-head {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+    color: #cbd5e1; font-size: 14px; letter-spacing: 0.08em;
+  }
+  .section-head::after {
+    content: ''; height: 1px; flex: 1;
+    background: linear-gradient(90deg, rgba(96, 165, 250, 0.38), transparent);
+  }
+  .section-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: linear-gradient(135deg, #60a5fa, #a78bfa);
+    box-shadow: 0 0 16px rgba(96, 165, 250, 0.55);
+  }
+  .tools-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  @media (min-width: 768px) {
+    .tools-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media (min-width: 1100px) {
+    .tools-grid { grid-template-columns: repeat(4, 1fr); }
+  }
 
   .tool-card {
-    background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(148, 163, 184, 0.12);
-    border-radius: 14px; padding: 24px 28px; cursor: pointer;
+    background: rgba(30, 41, 59, 0.42); border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 14px; padding: 24px 20px; cursor: pointer;
     transition: all 0.25s ease; text-decoration: none; color: inherit;
-    display: flex; align-items: center; gap: 18px;
-    backdrop-filter: blur(8px);
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    text-align: center;
   }
   .tool-card:hover {
     border-color: rgba(96, 165, 250, 0.4);
@@ -53,14 +182,23 @@
   }
   .tool-icon.blue { background: rgba(96, 165, 250, 0.15); }
   .tool-icon.purple { background: rgba(167, 139, 250, 0.15); }
+  .tool-icon.pink { background: rgba(244, 114, 182, 0.15); }
+  .tool-icon.green { background: rgba(52, 211, 153, 0.15); }
+  .tool-card.pink-card {
+    border-color: rgba(244, 114, 182, 0.32);
+    background: rgba(244, 114, 182, 0.12);
+  }
+  .tool-card.pink-card:hover {
+    border-color: rgba(244, 114, 182, 0.5);
+    box-shadow: 0 4px 24px rgba(244, 114, 182, 0.18);
+  }
   .tool-info h2 { font-size: 16px; font-weight: 600; color: #f1f5f9; }
   .tool-info p { font-size: 13px; color: #64748b; margin-top: 4px; line-height: 1.5; }
-  .tool-arrow { margin-left: auto; color: #475569; font-size: 18px; transition: color 0.2s; }
-  .tool-card:hover .tool-arrow { color: #60a5fa; }
 
   .footer {
     margin-top: auto; padding: 24px 0 20px; text-align: center;
     font-size: 12px; color: #334155;
+    display: flex; justify-content: center; gap: 16px; align-items: center;
   }
   .footer a {
     color: #334155; text-decoration: none; transition: color 0.2s;
@@ -71,54 +209,189 @@
 </head>
 <body>
 
+<div class="blue-star"></div>
 <div class="stars" id="stars"></div>
 
 <div class="container">
   <div class="header">
-    <h1>懒大猫的工具箱</h1>
-    <p>一些好用的小工具 ♡</p>
+    <div class="header-title">
+      <h1>懒大猫的工具箱和网址导航</h1>
+    </div>
+    <div class="header-subtitle">
+      <p>一些好用的工具和网址导航</p>
+      <button class="light-toggle" id="lightToggle" type="button" aria-label="打开恒星光亮" title="打开恒星光亮">💡</button>
+      <div class="brightness-control" id="brightnessControl">
+        <input type="range" class="brightness-slider" id="brightnessSlider" min="20" max="100" value="100" step="5" aria-label="调节恒星光亮亮度">
+      </div>
+    </div>
   </div>
 
-  <div class="tools-grid">
-    <a class="tool-card" href="openai-api-tester.html">
-      <div class="tool-icon blue">🔍</div>
-      <div class="tool-info">
-        <h2>OpenAI 接口连通性检测</h2>
-        <p>测试 OpenAI 兼容 API 的连通性，支持自定义地址和模型</p>
-      </div>
-      <span class="tool-arrow">›</span>
-    </a>
+  <section class="nav-section">
+    <div class="section-head"><span class="section-dot"></span><span>工具</span></div>
+    <div class="tools-grid">
+      <a class="tool-card" href="openai-api-tester.html">
+        <div class="tool-icon blue">🔍</div>
+        <div class="tool-info">
+          <h2>OpenAI 接口连通性检测</h2>
+          <p>测试 OpenAI 兼容 API 的连通性，支持自定义地址和模型</p>
+        </div>
+      </a>
 
-    <a class="tool-card" href="dict_tree_formatter.html">
-      <div class="tool-icon purple">🌳</div>
-      <div class="tool-info">
-        <h2>字典层级格式化工具</h2>
-        <p>将嵌套字典/JSON 树形结构格式化为可读的层级视图</p>
-      </div>
-      <span class="tool-arrow">›</span>
-    </a>
-  </div>
+      <a class="tool-card" href="dict_tree_formatter.html">
+        <div class="tool-icon purple">🌳</div>
+        <div class="tool-info">
+          <h2>字典层级格式化工具</h2>
+          <p>将嵌套字典/JSON 树形结构格式化为可读的层级视图</p>
+        </div>
+      </a>
+
+      <a class="tool-card" href="url_encoder.html">
+        <div class="tool-icon green">🔗</div>
+        <div class="tool-info">
+          <h2>中文URL编码转换</h2>
+          <p>把URL里的中文转成 %XX 编码，或者反向解码回来</p>
+        </div>
+      </a>
+
+      <a class="tool-card" href="base64_text.html">
+        <div class="tool-icon purple">B64</div>
+        <div class="tool-info">
+          <h2>Base64 文本转换</h2>
+          <p>只支持文本和 Base64 互相转换，不处理文件</p>
+        </div>
+      </a>
+
+      <a class="tool-card" href="/browse/">
+        <div class="tool-icon blue">📂</div>
+        <div class="tool-info">
+          <h2>文件浏览器</h2>
+          <p>浏览服务器上的文件，支持目录导航和文件下载</p>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <section class="nav-section">
+    <div class="section-head"><span class="section-dot"></span><span>站点</span></div>
+    <div class="tools-grid">
+      <a class="tool-card" href="http://82.157.178.5:9520/懒大猫的主页.html">
+        <div class="tool-icon blue">🌠</div>
+        <div class="tool-info">
+          <h2>懒大猫的主页</h2>
+          <p>懒大猫的个人主页 ♡</p>
+        </div>
+      </a>
+
+      <a class="tool-card pink-card" href="http://82.157.178.5:9520/砂糖酱的主页.html">
+        <div class="tool-icon pink">💖</div>
+        <div class="tool-info">
+          <h2>砂糖酱的主页</h2>
+          <p>砂糖と塩の甜甜蜜蜜~</p>
+        </div>
+      </a>
+
+      <a class="tool-card" href="https://github.com/landamao" target="_blank">
+        <div class="tool-icon" style="background:rgba(148,163,184,0.15)">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="#e2e8f0"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        </div>
+        <div class="tool-info">
+          <h2>GitHub</h2>
+          <p>懒大猫的开源项目仓库</p>
+        </div>
+      </a>
+
+      <a class="tool-card" href="http://82.157.178.5:6600/" target="_blank">
+        <div class="tool-icon purple">🚀</div>
+        <div class="tool-info">
+          <h2>New API</h2>
+          <p>懒大猫的OpenAI API 中转站，管理面板，渠道和令牌配置</p>
+        </div>
+      </a>
+
+      <a class="tool-card" href="http://82.157.178.5:6650/" target="_blank">
+        <div class="tool-icon blue">📊</div>
+        <div class="tool-info">
+          <h2>New API 数据看板</h2>
+          <p>API 调用统计、用量分析和费用监控</p>
+        </div>
+      </a>
+    </div>
+  </section>
 </div>
 
 <div class="footer">
-  <a href="懒大猫的主页.html">♡</a>
+  <a href="http://82.157.178.5:6185/#/console" style="font-size:9px;opacity:0.35;letter-spacing:1px">·</a>
+  <a href="http://82.157.178.5:9520/懒大猫的主页.html">♡</a>
+  <a href="http://82.157.178.5:6099" style="font-size:9px;opacity:0.35;letter-spacing:1px">·</a>
 </div>
 
 <script>
   // 星空粒子
   const stars = document.getElementById('stars');
-  for (let i = 0; i < 80; i++) {
+  const lightToggle = document.getElementById('lightToggle');
+  const brightnessSlider = document.getElementById('brightnessSlider');
+
+  function applyBrightness(val) {
+    document.documentElement.style.setProperty('--light-brightness', val);
+    document.body.style.setProperty('--light-brightness', val);
+  }
+
+  const savedBrightness = localStorage.getItem('toolsBrightness');
+  if (savedBrightness) brightnessSlider.value = savedBrightness;
+  applyBrightness(brightnessSlider.value / 100);
+
+  const savedLight = localStorage.getItem('toolsLightOn') === 'true';
+  if (savedLight) {
+    document.body.classList.add('light-on');
+    lightToggle.setAttribute('aria-label', '关闭恒星光亮');
+    lightToggle.title = '关闭恒星光亮';
+  }
+  lightToggle.addEventListener('click', () => {
+    const isOn = document.body.classList.toggle('light-on');
+    localStorage.setItem('toolsLightOn', String(isOn));
+    lightToggle.setAttribute('aria-label', isOn ? '关闭恒星光亮' : '打开恒星光亮');
+    lightToggle.title = isOn ? '关闭恒星光亮' : '打开恒星光亮';
+  });
+  brightnessSlider.addEventListener('input', () => {
+    const v = brightnessSlider.value / 100;
+    applyBrightness(v);
+    localStorage.setItem('toolsBrightness', brightnessSlider.value);
+  });
+  for (let i = 0; i < 360; i++) {
     const s = document.createElement('div');
     s.className = 'star';
-    const size = Math.random() * 2 + 0.5;
+    const type = Math.random();
+    const size = type > 0.92 ? Math.random() * 3.4 + 2.2 : type > 0.65 ? Math.random() * 2 + 1.1 : Math.random() * 1.2 + 0.5;
+    const glow = type > 0.92 ? size * 10 : type > 0.65 ? size * 7 : size * 4.5;
     s.style.cssText = `
       width:${size}px;height:${size}px;
       left:${Math.random()*100}%;top:${Math.random()*100}%;
-      --dur:${Math.random()*3+2}s;--min:${Math.random()*0.3};--max:${Math.random()*0.5+0.5};
-      animation-delay:${Math.random()*3}s;
+      --glow:${glow}px;
+      --dur:${Math.random()*4+1.8}s;--min:${Math.random()*0.18+0.08};--max:${Math.random()*0.38+0.62};
+      animation-delay:${Math.random()*6}s;
     `;
     stars.appendChild(s);
   }
+  const bigStars = [
+    { left: 8, top: 11, size: 30, rotate: -12, dur: 3.8 },
+    { left: 86, top: 13, size: 26, rotate: 18, dur: 4.4 },
+    { left: 5, top: 54, size: 24, rotate: 10, dur: 5.2 },
+    { left: 91, top: 48, size: 34, rotate: -18, dur: 4.8 },
+    { left: 18, top: 78, size: 22, rotate: 22, dur: 4.2 },
+    { left: 78, top: 83, size: 28, rotate: -8, dur: 5.6 },
+    { left: 50, top: 8, size: 20, rotate: 14, dur: 4.6 }
+  ];
+  bigStars.forEach(item => {
+    const s = document.createElement('div');
+    s.className = 'big-star';
+    s.textContent = '☆';
+    s.style.cssText = `
+      left:${item.left}%;top:${item.top}%;
+      --size:${item.size}px;--rotate:${item.rotate}deg;--dur:${item.dur}s;
+      animation-delay:${Math.random()*3}s;
+    `;
+    stars.appendChild(s);
+  });
 </script>
 </body>
 </html>
