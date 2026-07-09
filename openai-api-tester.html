@@ -28,6 +28,8 @@
   .form-group label { display: block; font-size: 13px; font-weight: 500; color: var(--text-light); margin-bottom: 6px; }
   input, select { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; color: var(--text); background: #f8faff; transition: border-color 0.2s, box-shadow 0.2s; outline: none; }
   input:focus, select:focus { border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+  .inline-textarea { width: 100%; min-height: 92px; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; line-height: 1.6; color: var(--text); background: #f8faff; resize: vertical; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+  .inline-textarea:focus { border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
   .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; }
   .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; box-shadow: 0 2px 8px rgba(37,99,235,0.3); }
   .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(37,99,235,0.4); }
@@ -36,8 +38,12 @@
   .btn-success { background: linear-gradient(135deg, #10b981, #059669); color: white; }
   .btn-outline { background: transparent; color: var(--primary); border: 1.5px solid var(--primary); }
   .btn-outline:hover { background: rgba(37,99,235,0.06); }
+  .model-list-panel { max-height: 420px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; }
+  .model-list-panel::-webkit-scrollbar { width: 6px; }
+  .model-list-panel::-webkit-scrollbar-track { background: transparent; }
+  .model-list-panel::-webkit-scrollbar-thumb { background: #bfdbfe; border-radius: 3px; }
   .model-table { width: 100%; border-collapse: collapse; }
-  .model-table th { text-align: left; padding: 10px 14px; font-size: 12px; font-weight: 600; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid var(--border); }
+  .model-table th { position: sticky; top: 0; z-index: 1; background: #fff; text-align: left; padding: 10px 14px; font-size: 12px; font-weight: 600; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid var(--border); }
   .model-table td { padding: 10px 14px; font-size: 14px; border-bottom: 1px solid #f1f5f9; }
   .model-table tr:hover td { background: #f0f5ff; }
   .model-name { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 13px; color: var(--primary-dark); }
@@ -63,7 +69,7 @@
   .log-panel::-webkit-scrollbar { width: 6px; }
   .log-panel::-webkit-scrollbar-track { background: transparent; }
   .log-panel::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
-  .log-entry { padding: 2px 0; word-break: break-all; }
+  .log-entry { padding: 2px 0; word-break: break-all; white-space: pre-wrap; }
   .log-time { color: #64748b; }
   .log-info { color: #38bdf8; }
   .log-success { color: #34d399; }
@@ -182,6 +188,11 @@
         <button class="btn btn-outline" id="btnAddCustom" style="white-space:nowrap">➕ 添加</button>
       </div>
     </div>
+    <div style="margin-top:12px;margin-bottom:0">
+      <label style="display:block;font-size:13px;font-weight:500;color:#64748b;margin-bottom:6px">自定义测试内容</label>
+      <textarea id="customPrompt" class="inline-textarea" placeholder="例如：请回复：测试成功"></textarea>
+      <div style="font-size:12px;color:#94a3b8;margin-top:6px">检测时会把这里的内容作为 user 消息发送；留空默认发送 Hi。</div>
+    </div>
   </div>
 
   <div class="stats-row" id="statsRow" style="display:none">
@@ -193,6 +204,10 @@
 
   <div class="card">
     <div class="card-title">模型列表</div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+      <input id="modelSearch" type="text" placeholder="搜索模型 ID，例如 grok、gpt、claude" style="flex:1">
+      <button class="btn btn-outline btn-sm" id="btnClearModelSearch" type="button">清空</button>
+    </div>
     <div id="modelList">
       <div class="empty-state">
         <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
@@ -270,6 +285,32 @@ const parseApiError = (errText) => {
     return errText.slice(0, 100);
   }
 };
+
+const formatApiReturn = (value) => {
+  if (typeof value === 'string') return value;
+  try { return JSON.stringify(value, null, 2); }
+  catch (e) { return String(value); }
+};
+
+const formatBrowserError = (error) => {
+  if (error === 'Failed to fetch') {
+    return '浏览器没有拿到 API 响应，常见原因是跨域 CORS、预检 OPTIONS 被拦、网络连接中断，或接口地址不可达。这个报错来自本地浏览器，不代表工具箱服务器出错。';
+  }
+  if (error === '请求中断/超时') return '请求超时或已被手动停止，浏览器没有拿到 API 响应。';
+  return error || '浏览器请求失败，未拿到 API 响应。';
+};
+
+const logTestResult = (modelId, result) => {
+  if (result.success) {
+    log(`✅ ${modelId} — 测试成功 (${result.latency}ms)，API返回：\n${formatApiReturn(result.apiReturn)}`, 'success');
+  } else if (result.kind === 'api_response') {
+    log(`❌ ${modelId} — API错误 (${result.latency}ms)，API返回：\n${formatApiReturn(result.apiReturn)}`, 'error');
+  } else {
+    log(`❌ ${modelId} — 请求未到达/未取得API响应 (${result.latency}ms)：${formatBrowserError(result.error)}`, 'error');
+  }
+};
+
+const getTestPrompt = () => document.getElementById('customPrompt').value.trim() || 'Hi';
 
 // 从文本中提取 URL 和 Key 配置
 const extractConfigFromText = (raw) => {
@@ -371,6 +412,7 @@ const saveConfigToLocal = () => {
     localStorage.setItem('openai_tester_url', document.getElementById('baseUrl').value);
     localStorage.setItem('openai_tester_key', document.getElementById('apiKey').value);
     localStorage.setItem('openai_tester_timeout', document.getElementById('timeout').value);
+    localStorage.setItem('openai_tester_prompt', document.getElementById('customPrompt').value);
     localStorage.setItem('openai_tester_remember', 'true');
   } else {
     localStorage.clear();
@@ -383,6 +425,7 @@ const loadConfigFromLocal = () => {
     document.getElementById('baseUrl').value = localStorage.getItem('openai_tester_url') || '';
     document.getElementById('apiKey').value = localStorage.getItem('openai_tester_key') || '';
     document.getElementById('timeout').value = localStorage.getItem('openai_tester_timeout') || '30';
+    document.getElementById('customPrompt').value = localStorage.getItem('openai_tester_prompt') || '';
   }
 };
 
@@ -430,6 +473,7 @@ const fetchModels = async () => {
 const testModel = async (modelId) => {
   const url = `${getBaseUrl()}/chat/completions`;
   const timeoutMs = parseInt(document.getElementById('timeout').value) * 1000;
+  const prompt = getTestPrompt();
   
   const controller = new AbortController();
   activeControllers.add(controller); // 加入全局集合，方便中断
@@ -440,25 +484,27 @@ const testModel = async (modelId) => {
     const resp = await fetch(url, {
       method: 'POST',
       headers: getHeaders(),
-      body: JSON.stringify({ model: modelId, messages: [{ role: 'user', content: 'Hi' }], max_tokens: 5, stream: false }),
+      body: JSON.stringify({ model: modelId, messages: [{ role: 'user', content: prompt }], max_tokens: 200, stream: false }),
       signal: controller.signal
     });
     
     clearTimeout(timer);
     activeControllers.delete(controller); // 请求完成，移除 controller
     const latency = Math.round(performance.now() - start);
+    const rawText = await resp.text();
+    let apiReturn = rawText;
+    try { apiReturn = JSON.parse(rawText); } catch (e) {}
     
     if (resp.ok) {
-      return { success: true, latency, status: resp.status };
+      return { success: true, kind: 'api_response', latency, status: resp.status, apiReturn };
     } else {
-      const errText = await resp.text();
-      return { success: false, latency, status: resp.status, error: parseApiError(errText) };
+      return { success: false, kind: 'api_response', latency, status: resp.status, error: parseApiError(rawText), apiReturn };
     }
   } catch (e) {
     clearTimeout(timer);
     activeControllers.delete(controller);
     const latency = Math.round(performance.now() - start);
-    return { success: false, latency, error: e.name === 'AbortError' ? '请求中断/超时' : e.message };
+    return { success: false, kind: 'browser_error', latency, error: e.name === 'AbortError' ? '请求中断/超时' : e.message };
   }
 };
 
@@ -504,11 +550,7 @@ const runTests = async (modelIds) => {
       
       if (idx >= 0) updateRow(idx, result);
       
-      if (result.success) {
-        log(`✅ ${id} — 通过 (${result.latency}ms)`, 'success');
-      } else {
-        log(`❌ ${id} — 失败 (${result.latency}ms) - ${result.error}`, 'error');
-      }
+      logTestResult(id, result);
       updateStats();
     }));
 
@@ -550,25 +592,43 @@ const renderModels = () => {
     return;
   }
 
-  let html = `<table class="model-table"><thead><tr>
+  const keyword = document.getElementById('modelSearch')?.value.trim().toLowerCase() || '';
+  const visibleModels = models
+    .map((m, originalIndex) => ({ ...m, originalIndex }))
+    .filter(m => !keyword || m.id.toLowerCase().includes(keyword));
+
+  if (visibleModels.length === 0) {
+    container.innerHTML = '<div class="empty-state"><p>没有匹配的模型</p></div>';
+    document.getElementById('modelCount').textContent = `共 ${models.length} 个模型，当前 0 个匹配`;
+    return;
+  }
+
+  let html = `<div class="model-list-panel"><table class="model-table"><thead><tr>
     <th class="checkbox-cell"><input type="checkbox" id="selectAll" checked></th>
     <th>#</th><th>模型 ID</th><th>状态</th><th>延迟</th><th>操作</th>
     </tr></thead><tbody>`;
 
-  models.forEach((m, i) => {
+  visibleModels.forEach((m, i) => {
+    const saved = testResults[m.id];
+    const statusHtml = saved
+      ? (saved.success
+        ? '<span class="status-badge success"><span class="status-dot success"></span>通过</span>'
+        : '<span class="status-badge error" title="' + escapeHTML(saved.error || '') + '"><span class="status-dot error"></span>失败</span>')
+      : '<span class="status-badge pending"><span class="status-dot pending"></span>待测</span>';
+    const latencyHtml = saved ? `<span class="latency">${saved.latency}ms</span>` : '<span class="latency">-</span>';
     html += `<tr>
       <td class="checkbox-cell"><input type="checkbox" class="model-cb" data-model="${escapeHTML(m.id)}" checked></td>
       <td>${i + 1}</td>
       <td><span class="model-name">${escapeHTML(m.id)}</span></td>
-      <td id="status-${i}"><span class="status-badge pending"><span class="status-dot pending"></span>待测</span></td>
-      <td id="latency-${i}"><span class="latency">-</span></td>
-      <td><button class="btn btn-primary btn-sm test-single-btn" data-id="${escapeHTML(m.id)}" data-idx="${i}">检测</button></td>
+      <td id="status-${m.originalIndex}">${statusHtml}</td>
+      <td id="latency-${m.originalIndex}">${latencyHtml}</td>
+      <td><button class="btn btn-primary btn-sm test-single-btn" data-id="${escapeHTML(m.id)}" data-idx="${m.originalIndex}">检测</button></td>
       </tr>`;
   });
-  html += '</tbody></table>';
+  html += '</tbody></table></div>';
   container.innerHTML = html;
   
-  document.getElementById('modelCount').textContent = `共 ${models.length} 个模型`;
+  document.getElementById('modelCount').textContent = keyword ? `共 ${models.length} 个模型，当前 ${visibleModels.length} 个匹配` : `共 ${models.length} 个模型`;
   
   // 重新绑定事件
   document.getElementById('selectAll').addEventListener('change', (e) => {
@@ -587,13 +647,8 @@ const renderModels = () => {
       updateRow(idx, result);
       updateStats();
 
-      if (result.success) {
-        log(`✅ ${id} — 通过 (${result.latency}ms)`, 'success');
-        showToast(`✅ ${id} — 通过`, 'success');
-      } else {
-        log(`❌ ${id} — 失败 (${result.latency}ms) ${result.error}`, 'error');
-        showToast(`❌ ${id} — 失败`, 'error');
-      }
+      logTestResult(id, result);
+      showToast(result.success ? `✅ ${id} — 通过` : `❌ ${id} — 失败`, result.success ? 'success' : 'error');
     });
   });
 };
@@ -635,6 +690,11 @@ document.addEventListener('DOMContentLoaded', () => {
   loadConfigFromLocal();
 
   document.getElementById('btnFetchModels').addEventListener('click', fetchModels);
+  document.getElementById('modelSearch').addEventListener('input', renderModels);
+  document.getElementById('btnClearModelSearch').addEventListener('click', () => {
+    document.getElementById('modelSearch').value = '';
+    renderModels();
+  });
   
   document.getElementById('btnTestSelected').addEventListener('click', () => {
     const selected = Array.from(document.querySelectorAll('.model-cb:checked')).map(c => c.dataset.model);
@@ -767,6 +827,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('rememberConfig').addEventListener('change', saveConfigToLocal);
+  document.getElementById('customPrompt').addEventListener('input', saveConfigToLocal);
   document.getElementById('apiKey').addEventListener('keydown', e => e.key === 'Enter' && fetchModels());
   document.getElementById('customModelInput').addEventListener('keydown', e => e.key === 'Enter' && document.getElementById('btnAddCustom').click());
 });
