@@ -265,6 +265,7 @@
 // ============ State Management ============
 let models = [];
 let testResults = {};
+let selectedModelIds = new Set();
 let stopRequested = false;
 let testingModels = new Set();
 let activeControllers = new Set(); // 追踪所有进行中的 AbortController，用于真正中断请求
@@ -275,6 +276,20 @@ let toastTimer = null;
 const escapeHTML = (str) => String(str).replace(/[&<>'"]/g, tag => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
 }[tag]));
+
+const setModelSelected = (modelId, checked) => {
+  if (checked) selectedModelIds.add(modelId);
+  else selectedModelIds.delete(modelId);
+};
+
+const syncSelectAllState = () => {
+  const selectAll = document.getElementById('selectAll');
+  if (!selectAll) return;
+  const checks = Array.from(document.querySelectorAll('.model-cb'));
+  const selectedCount = checks.filter(c => c.checked).length;
+  selectAll.checked = checks.length > 0 && selectedCount === checks.length;
+  selectAll.indeterminate = selectedCount > 0 && selectedCount < checks.length;
+};
 
 // 解析友好的 API 错误信息
 const parseApiError = (errText) => {
@@ -457,6 +472,7 @@ const fetchModels = async () => {
       .sort((a, b) => a.id.localeCompare(b.id));
       
     testResults = {};
+    selectedModelIds.clear();
     log(`✅ 成功获取 ${models.length} 个对话模型 (已过滤非对话模型)`, 'success');
     showToast(`✅ 成功获取 ${models.length} 个模型`, 'success');
     renderModels();
@@ -603,8 +619,11 @@ const renderModels = () => {
     return;
   }
 
+  const selectedVisibleCount = visibleModels.filter(m => selectedModelIds.has(m.id)).length;
+  const selectAllChecked = selectedVisibleCount === visibleModels.length ? ' checked' : '';
+
   let html = `<div class="model-list-panel"><table class="model-table"><thead><tr>
-    <th class="checkbox-cell"><input type="checkbox" id="selectAll" checked></th>
+    <th class="checkbox-cell"><input type="checkbox" id="selectAll"${selectAllChecked}></th>
     <th>#</th><th>模型 ID</th><th>状态</th><th>延迟</th><th>操作</th>
     </tr></thead><tbody>`;
 
@@ -616,8 +635,9 @@ const renderModels = () => {
         : '<span class="status-badge error" title="' + escapeHTML(saved.error || '') + '"><span class="status-dot error"></span>失败</span>')
       : '<span class="status-badge pending"><span class="status-dot pending"></span>待测</span>';
     const latencyHtml = saved ? `<span class="latency">${saved.latency}ms</span>` : '<span class="latency">-</span>';
+    const checked = selectedModelIds.has(m.id) ? ' checked' : '';
     html += `<tr>
-      <td class="checkbox-cell"><input type="checkbox" class="model-cb" data-model="${escapeHTML(m.id)}" checked></td>
+      <td class="checkbox-cell"><input type="checkbox" class="model-cb" data-model="${escapeHTML(m.id)}"${checked}></td>
       <td>${i + 1}</td>
       <td><span class="model-name">${escapeHTML(m.id)}</span></td>
       <td id="status-${m.originalIndex}">${statusHtml}</td>
@@ -632,8 +652,19 @@ const renderModels = () => {
   
   // 重新绑定事件
   document.getElementById('selectAll').addEventListener('change', (e) => {
-    document.querySelectorAll('.model-cb').forEach(c => c.checked = e.target.checked);
+    document.querySelectorAll('.model-cb').forEach(c => {
+      c.checked = e.target.checked;
+      setModelSelected(c.dataset.model, c.checked);
+    });
+    syncSelectAllState();
   });
+  document.querySelectorAll('.model-cb').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      setModelSelected(e.target.dataset.model, e.target.checked);
+      syncSelectAllState();
+    });
+  });
+  syncSelectAllState();
   document.querySelectorAll('.test-single-btn').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       const { id, idx } = e.target.dataset;
@@ -697,7 +728,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   
   document.getElementById('btnTestSelected').addEventListener('click', () => {
-    const selected = Array.from(document.querySelectorAll('.model-cb:checked')).map(c => c.dataset.model);
+    const selected = models.map(m => m.id).filter(id => selectedModelIds.has(id));
     if (selected.length === 0) { log('⚠️ 请至少选择一个模型', 'warn'); showToast('⚠️ 请选择模型', 'warn'); return; }
     runTests(selected);
   });
