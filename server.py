@@ -13,17 +13,71 @@ from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
+NAV_SCRIPT = """<script>
+(function(){
+if(window.__nav)return;window.__nav=1;
+function swap(h){
+  var d=new DOMParser().parseFromString(h,'text/html');
+  document.title=d.title;
+  document.head.innerHTML=d.head.innerHTML;
+  document.body.innerHTML=d.body.innerHTML;
+  document.querySelectorAll('script').forEach(function(o){
+    var s=document.createElement('script');
+    if(o.src)s.src=o.src;else s.textContent=o.textContent;
+    o.replaceWith(s);
+  });
+}
+document.addEventListener('click',function(e){
+  var a=e.target.closest('a');
+  if(!a||!a.href||a.target==='_blank'||a.hasAttribute('download'))return;
+  try{if(new URL(a.href).origin!==location.origin)return;}catch(_){return;}
+  e.preventDefault();
+  fetch(a.href).then(function(r){
+    var ct=r.headers.get('Content-Type')||'';
+    if(ct.indexOf('text/html')===-1){window.location.href=a.href;return;}
+    return r.text().then(function(h){
+      history.pushState({},'',a.href);
+      swap(h);
+    });
+  }).catch(function(){window.location.href=a.href;});
+});
+window.addEventListener('popstate',function(){
+  fetch(location.href).then(function(r){
+    var ct=r.headers.get('Content-Type')||'';
+    if(ct.indexOf('text/html')===-1){location.reload();return;}
+    return r.text().then(function(h){swap(h);});
+  }).catch(function(){location.reload();});
+});
+})();
+// Theme toggle
+(function(){
+var b=document.getElementById('theme-toggle');
+if(!b)return;
+var s=localStorage.getItem('theme')||'light';
+if(s==='light'){document.body.classList.add('light-theme');document.documentElement.style.backgroundColor='#fce7f3';}
+b.textContent=s==='light'?'☀️':'🌙';
+b.addEventListener('click',function(){
+var l=document.body.classList.toggle('light-theme');
+document.documentElement.style.backgroundColor=l?'#fce7f3':'#0f172a';
+localStorage.setItem('theme',l?'light':'dark');
+b.textContent=l?'☀️':'🌙';
+});
+})();
+</script>"""
+
 PAGE = """<!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" style="background:#0f172a">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
 <title>工具箱文件浏览器 · {title}</title>
 <style>
-*{{box-sizing:border-box}}body{{margin:0;min-height:100vh;background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans SC',sans-serif;padding:28px 14px}}a{{color:inherit;text-decoration:none}}.wrap{{max-width:1080px;margin:auto;background:rgba(30,41,59,.82);border:1px solid rgba(148,163,184,.14);border-radius:20px;overflow:hidden;box-shadow:0 18px 44px rgba(0,0,0,.28)}}.head{{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:22px 26px;background:linear-gradient(135deg,#1e293b,#334155)}}h1{{font-size:22px;margin:0}}.home{{font-size:14px;color:#93c5fd}}.crumb{{padding:14px 26px;background:rgba(15,23,42,.55);color:#94a3b8;font-size:14px}}.grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;padding:22px}}.item{{display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:14px;background:rgba(15,23,42,.48);border:1px solid rgba(148,163,184,.12);transition:.18s}}.item:hover{{transform:translateY(-2px);border-color:rgba(96,165,250,.45);box-shadow:0 8px 24px rgba(96,165,250,.12)}}.icon{{font-size:26px;width:34px;text-align:center}}.name{{word-break:break-all;font-weight:600}}.size{{font-size:12px;color:#64748b;margin-top:4px;font-weight:400}}.empty{{padding:50px;text-align:center;color:#64748b}}@media(max-width:640px){{.head{{padding:18px;align-items:flex-start;flex-direction:column}}.grid{{grid-template-columns:1fr;padding:16px}}}}
+*{{box-sizing:border-box}}html{{color-scheme:dark;background:#0f172a}}body{{margin:0;min-height:100vh;background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans SC',sans-serif;padding:28px 14px}}a{{color:inherit;text-decoration:none}}.wrap{{max-width:1080px;margin:auto;background:rgba(30,41,59,.82);border:1px solid rgba(148,163,184,.14);border-radius:20px;overflow:hidden;box-shadow:0 18px 44px rgba(0,0,0,.28)}}.head{{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:22px 26px;background:linear-gradient(135deg,#1e293b,#334155)}}h1{{font-size:22px;margin:0}}.home{{font-size:14px;color:#93c5fd}}.head-right{{display:flex;align-items:center;gap:14px}}.head-left{{display:flex;align-items:center;gap:14px}}.tip{{font-size:13px;color:#64748b}}.crumb{{padding:14px 26px;background:rgba(15,23,42,.55);color:#94a3b8;font-size:14px}}.grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;padding:22px}}.item{{display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:14px;background:rgba(15,23,42,.48);border:1px solid rgba(148,163,184,.12);transition:.18s}}.item:hover{{transform:translateY(-2px);border-color:rgba(96,165,250,.45);box-shadow:0 8px 24px rgba(96,165,250,.12)}}.icon{{font-size:26px;width:34px;text-align:center}}.name{{word-break:break-all;font-weight:600}}.size{{font-size:12px;color:#64748b;margin-top:4px;font-weight:400}}.open{{flex:1;display:flex;gap:12px;align-items:center}}.dl{{flex-shrink:0;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:rgba(96,165,250,.12);color:#93c5fd;font-size:16px;transition:.15s}}.dl:hover{{background:rgba(96,165,250,.3);transform:scale(1.08)}}#theme-toggle{{position:fixed;top:16px;right:16px;z-index:9999;width:40px;height:40px;border:none;border-radius:50%;background:rgba(255,255,255,.12);color:inherit;font-size:20px;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center}}#theme-toggle:hover{{background:rgba(255,255,255,.22)}}body.light-theme{{background:#fce7f3!important;color:#831843!important}}body.light-theme .wrap{{background:rgba(255,240,246,.9)!important;border-color:#f9a8d4!important}}body.light-theme .head{{background:linear-gradient(135deg,#fce7f3,#fbcfe8)!important}}body.light-theme h1{{color:#831843!important}}body.light-theme .home{{color:#ec4899!important}}body.light-theme .tip{{color:#be185d!important}}body.light-theme .crumb{{background:rgba(252,231,243,.55)!important;color:#be185d!important}}body.light-theme .item{{background:rgba(255,240,246,.7)!important;border-color:#f9a8d4!important}}body.light-theme .item:hover{{border-color:#ec4899!important;box-shadow:0 8px 24px rgba(236,72,153,.12)!important}}body.light-theme .size{{color:#be185d!important}}body.light-theme .dl{{background:rgba(236,72,153,.12)!important;color:#ec4899!important}}body.light-theme .dl:hover{{background:rgba(236,72,153,.3)!important}}body.light-theme .empty{{color:#be185d!important}}.empty{{padding:50px;text-align:center;color:#64748b}}@media(max-width:640px){{.head{{padding:18px;align-items:flex-start;flex-direction:column}}.grid{{grid-template-columns:1fr;padding:16px}}}}@view-transition{{navigation:auto}}
 </style>
 </head>
-<body><div class="wrap"><div class="head"><h1>🧰 工具箱文件浏览器</h1><a class="home" href="/">← 返回工具箱主页</a></div><div class="crumb">📂 {crumb}</div><div class="grid">{items}</div></div></body></html>"""
+<body><button id="theme-toggle">🌙</button><div class="wrap"><div class="head"><div class="head-left"><h1>🧰 工具箱文件浏览器</h1><a class="home" href="/">← 返回工具箱主页</a></div><div class="head-right"><span class="tip">点击文件可查看或下载，点击⬇可下载</span></div></div><div class="crumb">📂 {crumb}</div><div class="grid">{items}</div></div>{script}</body></html>"""
+
 
 class ToolsFileBrowser(SimpleHTTPRequestHandler):
     BLOCKED_NAMES = {'__pycache__', 'node_modules'}
@@ -53,7 +107,10 @@ class ToolsFileBrowser(SimpleHTTPRequestHandler):
         return out
 
     def do_GET(self):
-        path = urllib.parse.urlparse(self.path).path
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path
+        is_raw = 'raw' in urllib.parse.parse_qs(parsed.query)
+
         if path in ('', '/'):
             self.path = '/index.html'
             return super().do_GET()
@@ -71,8 +128,10 @@ class ToolsFileBrowser(SimpleHTTPRequestHandler):
             if os.path.isdir(fs_path):
                 return self.show_directory(fs_path)
             if os.path.isfile(fs_path):
-                self.path = '/' + sub
-                return super().do_GET()
+                if is_raw:
+                    self.path = '/' + sub
+                    return super().do_GET()
+                return self.serve_file(fs_path, path)
             self.send_error(404, 'File not found')
             return
         fs_path = self.translate_path(path)
@@ -90,7 +149,27 @@ class ToolsFileBrowser(SimpleHTTPRequestHandler):
                 self.path = path.rstrip('/') + '/index.html'
                 return super().do_GET()
             return self.show_directory(fs_path)
+        if os.path.isfile(fs_path) and not is_raw:
+            return self.serve_file(fs_path, path)
         return super().do_GET()
+
+    def serve_file(self, fs_path, url_path):
+        """所有文件直接原始发送，用浏览器原生查看器。"""
+        if url_path.startswith('/browse/'):
+            self.path = '/' + url_path[len('/browse/'):]
+        else:
+            self.path = url_path
+        return super().do_GET()
+
+    def _send_html(self, body):
+        data = body.encode('utf-8')
+        self.send_response(200)
+        self.send_header('Content-Type', 'text/html; charset=utf-8')
+        self.send_header('Content-Length', str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    # ── 原有方法 ──────────────────────────────────────────────────
 
     def end_headers(self):
         if hasattr(self, '_headers_buffer'):
@@ -124,15 +203,22 @@ class ToolsFileBrowser(SimpleHTTPRequestHandler):
         if rel:
             parent = urllib.parse.quote(os.path.dirname(rel).replace(os.sep, '/'))
             href = '/browse/' + (parent + '/' if parent and parent != '.' else '')
-            items.append(self.card(href, '📁', '../ 上级目录', ''))
+            items.append(self.card(href, '📁', '../ 上级目录', '', is_dir=True))
+        else:
+            items.append(self.card('/', '🏠', '../ 返回工具箱主页', '', is_dir=True))
         for name in names:
             full = os.path.join(real, name)
             url_rel = '/'.join([p for p in (rel.replace(os.sep, '/'), name) if p])
             href = '/browse/' + urllib.parse.quote(url_rel) + ('/' if os.path.isdir(full) else '')
             icon = '📁' if os.path.isdir(full) else self.icon(name)
             size = '' if os.path.isdir(full) else self.size(os.path.getsize(full))
-            items.append(self.card(href, icon, name + ('/' if os.path.isdir(full) else ''), size))
-        body = PAGE.format(title=html.escape(rel or '/'), crumb=html.escape('/' + rel), items=''.join(items) or '<div class="empty">✨ 此目录为空 ✨</div>')
+            items.append(self.card(href, icon, name + ('/' if os.path.isdir(full) else ''), size, is_dir=os.path.isdir(full)))
+        body = PAGE.format(
+            title=html.escape(rel or '/'),
+            crumb=html.escape('/' + rel),
+            items=''.join(items) or '<div class="empty">✨ 此目录为空 ✨</div>',
+            script=NAV_SCRIPT,
+        )
         data = body.encode('utf-8')
         self.send_response(200)
         self.send_header('Content-Type', 'text/html; charset=utf-8')
@@ -141,9 +227,14 @@ class ToolsFileBrowser(SimpleHTTPRequestHandler):
         self.wfile.write(data)
         return None
 
-    def card(self, href, icon, name, size):
+    def card(self, href, icon, name, size, is_dir=False):
         size_html = f'<div class="size">{html.escape(size)}</div>' if size else ''
-        return f'<a class="item" href="{href}"><div class="icon">{icon}</div><div><div class="name">{html.escape(name)}</div>{size_html}</div></a>'
+        if is_dir:
+            return f'<a class="item" href="{href}"><div class="icon">{icon}</div><div><div class="name">{html.escape(name)}</div>{size_html}</div></a>'
+        dl_name = html.escape(name.rstrip('/'))
+        return (f'<div class="item"><a class="open" href="{href}"><div class="icon">{icon}</div>'
+                f'<div><div class="name">{html.escape(name)}</div>{size_html}</div></a>'
+                f'<a class="dl" href="{href}?raw=1" download="{dl_name}">⬇</a></div>')
 
     def icon(self, name):
         ext = os.path.splitext(name)[1].lower()

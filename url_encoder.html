@@ -5,14 +5,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>中文URL编码转换</title>
 <style>
-*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans SC',sans-serif;display:flex;align-items:center;justify-content:center;padding:24px}.card{width:min(900px,100%);background:rgba(30,41,59,.78);border:1px solid rgba(148,163,184,.14);border-radius:20px;padding:28px;box-shadow:0 18px 44px rgba(0,0,0,.28)}h1{margin:0 0 8px;font-size:28px;background:linear-gradient(135deg,#60a5fa,#a78bfa,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}.tip{color:#94a3b8;margin:0 0 22px}textarea{width:100%;height:180px;background:#111827;color:#e5e7eb;border:1px solid #334155;border-radius:14px;padding:14px;font-size:15px;line-height:1.6;resize:vertical}textarea:focus{outline:none;border-color:#60a5fa;box-shadow:0 0 0 3px rgba(96,165,250,.15)}.buttons{display:flex;flex-wrap:wrap;gap:12px;margin:16px 0}button,a{border:0;border-radius:12px;padding:11px 16px;background:rgba(96,165,250,.16);color:#bfdbfe;text-decoration:none;cursor:pointer;font-size:14px}button:hover,a:hover{background:rgba(96,165,250,.28)}.out{margin-top:18px}.label{margin:0 0 8px;color:#cbd5e1;font-weight:600}.copy{background:rgba(167,139,250,.18);color:#ddd6fe}.clear{background:rgba(244,114,182,.14);color:#fbcfe8}</style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans SC',sans-serif;display:flex;align-items:center;justify-content:center;padding:24px}.card{width:min(900px,100%);background:rgba(30,41,59,.78);border:1px solid rgba(148,163,184,.14);border-radius:20px;padding:28px;box-shadow:0 18px 44px rgba(0,0,0,.28)}h1{margin:0 0 8px;font-size:28px;background:linear-gradient(135deg,#60a5fa,#a78bfa,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}.tip{color:#94a3b8;margin:0 0 22px}textarea{width:100%;height:180px;background:#111827;color:#e5e7eb;border:1px solid #334155;border-radius:14px;padding:14px;font-size:15px;line-height:1.6;resize:vertical}textarea:focus{outline:none;border-color:#60a5fa;box-shadow:0 0 0 3px rgba(96,165,250,.15)}.buttons{display:flex;flex-wrap:wrap;gap:12px;margin:16px 0}button,a{border:0;border-radius:12px;padding:11px 16px;background:rgba(96,165,250,.16);color:#bfdbfe;text-decoration:none;cursor:pointer;font-size:14px}button:hover,a:hover{background:rgba(96,165,250,.28)}.out{margin-top:18px}.label{margin:0 0 8px;color:#cbd5e1;font-weight:600}.copy{background:rgba(167,139,250,.18);color:#ddd6fe}.clear{background:rgba(244,114,182,.14);color:#fbcfe8}
+#theme-toggle{position:fixed;top:16px;right:16px;z-index:9999;width:40px;height:40px;border:none;border-radius:50%;background:rgba(255,255,255,.12);color:inherit;font-size:20px;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center}
+#theme-toggle:hover{background:rgba(255,255,255,.22)}
+body.light-theme{background:#fce7f3 !important;color:#831843 !important}
+body.light-theme .card{background:#fff0f6 !important;border:1px solid #f9a8d4 !important;box-shadow:0 18px 44px rgba(249,168,212,.28) !important}
+body.light-theme h1{background:linear-gradient(135deg,#ec4899,#f472b6,#be185d) !important;-webkit-background-clip:text !important;-webkit-text-fill-color:transparent !important}
+body.light-theme .tip{color:#be185d !important}
+body.light-theme textarea{background:#ffffff !important;color:#831843 !important;border:1px solid #f9a8d4 !important}
+body.light-theme textarea:focus{outline:none !important;border-color:#ec4899 !important;box-shadow:0 0 0 3px rgba(236,72,153,.15) !important}
+body.light-theme button,body.light-theme a{background:rgba(236,72,153,.16) !important;color:#be185d !important}
+body.light-theme button:hover,body.light-theme a:hover{background:rgba(236,72,153,.28) !important}
+body.light-theme .label{color:#831843 !important}
+body.light-theme .copy{background:rgba(236,72,153,.18) !important;color:#831843 !important}
+body.light-theme .clear{background:rgba(244,114,182,.14) !important;color:#831843 !important}
+body.light-theme #theme-toggle{background:rgba(236,72,153,.16) !important;color:#831843 !important}
+body.light-theme #theme-toggle:hover{background:rgba(236,72,153,.28) !important}
+</style>
 </head>
 <body>
+<button id="theme-toggle">🌙</button>
 <div class="card">
   <h1>中文URL编码转换</h1>
   <p class="tip">把 URL 里的中文转成 %XX 编码，或把编码反向解码回来。</p>
   <p class="label">输入</p>
-  <textarea id="input" placeholder="例如：http://82.157.178.5:9520/懒大猫的主页.html"></textarea>
+  <textarea id="input" placeholder="例如：http://39.106.102.162:9520/懒大猫的主页.html"></textarea>
   <div class="buttons">
     <button onclick="encodeUrl()">编码中文</button>
     <button onclick="decodeUrl()">解码URL</button>
@@ -32,5 +49,6 @@ function decodeUrl(){try{output.value=decodeURI(input.value)}catch(e){output.val
 async function copyOutput(){if(!output.value)return; await navigator.clipboard.writeText(output.value)}
 function clearAll(){input.value='';output.value='';input.focus()}
 </script>
+<script>(function(){var b=document.getElementById('theme-toggle');var s=localStorage.getItem('theme')||'light';if(s==='light')document.body.classList.add('light-theme');b.textContent=s==='light'?'☀️':'🌙';b.addEventListener('click',function(){var l=document.body.classList.toggle('light-theme');localStorage.setItem('theme',l?'light':'dark');b.textContent=l?'☀️':'🌙'});})();</script>
 </body>
 </html>

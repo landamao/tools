@@ -205,6 +205,30 @@
     border-bottom: 1px dashed #334155;
   }
   .footer a:hover { color: #64748b; border-bottom-color: #64748b; }
+
+  /* Pink theme */
+  body.pink-on { background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 58%, #fbc1d4 100%); color: #831843; }
+  body.pink-on .tool-card { background: rgba(255,240,246,.7); border-color: #f9a8d4; }
+  body.pink-on .tool-card:hover { border-color: #ec4899; box-shadow: 0 4px 24px rgba(236,72,153,.12); transform: translateY(-2px); }
+  body.pink-on .tool-card.pink-card { background: rgba(236,72,153,.08); border-color: rgba(236,72,153,.3); }
+  body.pink-on .header h1 { background: linear-gradient(135deg,#ec4899,#f472b6,#db2777); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+  body.pink-on .header p { color: #be185d; }
+  body.pink-on .section-head { color: #831843; }
+  body.pink-on .section-head::after { background: linear-gradient(90deg,rgba(236,72,153,.38),transparent); }
+  body.pink-on .section-dot { background: linear-gradient(135deg,#ec4899,#f472b6); box-shadow: 0 0 16px rgba(236,72,153,.55); }
+  body.pink-on .tool-info h2 { color: #831843; }
+  body.pink-on .tool-info p { color: #be185d; }
+  body.pink-on .footer, body.pink-on .footer a { color: #be185d; border-bottom-color: #be185d; }
+  body.pink-on .light-toggle { background: rgba(252,231,243,.62); border-color: rgba(249,168,212,.35); color: #ec4899; box-shadow: 0 0 18px rgba(236,72,153,.22); }
+  body.pink-on .blue-star { display: none; }
+
+  /* Effects toggle */
+  body.effects-off .blue-star, body.effects-off .stars { display: none; }
+  .effects-toggle { width:40px; height:40px; border:1px solid rgba(191,219,254,.35); border-radius:50%; background:rgba(15,23,42,.62); color:#bfdbfe; font-size:20px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; transition:all .22s ease; flex-shrink:0; box-shadow:0 0 18px rgba(96,165,250,.22); }
+  .effects-toggle:hover { transform: translateY(-1px); }
+  body.pink-on .effects-toggle { background:rgba(252,231,243,.62); border-color:rgba(249,168,212,.35); color:#ec4899; box-shadow:0 0 18px rgba(236,72,153,.22); }
+  body:not(.light-on):not(.pink-on) .effects-toggle { color:#64748b; border-color:rgba(100,116,139,.35); box-shadow:none; }
+  body.effects-off .effects-toggle { color:#64748b; box-shadow:none; }
 </style>
 </head>
 <body>
@@ -219,7 +243,8 @@
     </div>
     <div class="header-subtitle">
       <p>一些好用的工具和网址导航</p>
-      <button class="light-toggle" id="lightToggle" type="button" aria-label="打开恒星光亮" title="打开恒星光亮">💡</button>
+      <button class="light-toggle" id="lightToggle" type="button" aria-label="打开蓝色恒星" title="打开蓝色恒星">💡</button>
+      <button class="effects-toggle" id="effectsToggle" type="button" aria-label="关闭特效" title="关闭特效">✨</button>
       <div class="brightness-control" id="brightnessControl">
         <input type="range" class="brightness-slider" id="brightnessSlider" min="20" max="100" value="100" step="5" aria-label="调节恒星光亮亮度">
       </div>
@@ -274,7 +299,7 @@
   <section class="nav-section">
     <div class="section-head"><span class="section-dot"></span><span>站点</span></div>
     <div class="tools-grid">
-      <a class="tool-card" href="http://82.157.178.5:9520/懒大猫的主页.html">
+      <a class="tool-card" href="http://39.106.102.162:9520/懒大猫的主页.html">
         <div class="tool-icon blue">🌠</div>
         <div class="tool-info">
           <h2>懒大猫的主页</h2>
@@ -282,7 +307,7 @@
         </div>
       </a>
 
-      <a class="tool-card pink-card" href="http://82.157.178.5:9520/砂糖酱的主页.html">
+      <a class="tool-card pink-card" href="http://39.106.102.162:9520/砂糖酱的主页.html">
         <div class="tool-icon pink">💖</div>
         <div class="tool-info">
           <h2>砂糖酱的主页</h2>
@@ -300,7 +325,7 @@
         </div>
       </a>
 
-      <a class="tool-card" href="http://82.157.178.5:6600/" target="_blank">
+      <a class="tool-card" href="http://39.106.102.162:6600/" target="_blank">
         <div class="tool-icon purple">🚀</div>
         <div class="tool-info">
           <h2>New API</h2>
@@ -308,7 +333,7 @@
         </div>
       </a>
 
-      <a class="tool-card" href="http://82.157.178.5:6650/" target="_blank">
+      <a class="tool-card" href="http://39.106.102.162:6650/" target="_blank">
         <div class="tool-icon blue">📊</div>
         <div class="tool-info">
           <h2>New API 数据看板</h2>
@@ -320,9 +345,9 @@
 </div>
 
 <div class="footer">
-  <a href="http://82.157.178.5:6185/#/console" style="font-size:9px;opacity:0.35;letter-spacing:1px">·</a>
-  <a href="http://82.157.178.5:9520/懒大猫的主页.html">♡</a>
-  <a href="http://82.157.178.5:6099" style="font-size:9px;opacity:0.35;letter-spacing:1px">·</a>
+  <a href="http://39.106.102.162:6185/#/console" style="font-size:9px;opacity:0.35;letter-spacing:1px">·</a>
+  <a href="http://39.106.102.162:9520/懒大猫的主页.html">♡</a>
+  <a href="http://39.106.102.162:6099" style="font-size:9px;opacity:0.35;letter-spacing:1px">·</a>
 </div>
 
 <script>
@@ -340,17 +365,46 @@
   if (savedBrightness) brightnessSlider.value = savedBrightness;
   applyBrightness(brightnessSlider.value / 100);
 
-  const savedLight = localStorage.getItem('toolsLightOn') === 'true';
-  if (savedLight) {
-    document.body.classList.add('light-on');
-    lightToggle.setAttribute('aria-label', '关闭恒星光亮');
-    lightToggle.title = '关闭恒星光亮';
+  // 3-mode theme: 0=dark, 1=blue, 2=pink
+  const themeModes = [
+    { cls: '', icon: '💡', label: '打开蓝色恒星' },
+    { cls: 'light-on', icon: '🔆', label: '切换粉色主题' },
+    { cls: 'pink-on', icon: '🌸', label: '关闭主题' },
+  ];
+  if (localStorage.getItem('toolsLightOn') === 'true' && !localStorage.getItem('toolsThemeMode')) {
+    localStorage.setItem('toolsThemeMode', '1');
+    localStorage.removeItem('toolsLightOn');
   }
+  let themeMode = parseInt(localStorage.getItem('toolsThemeMode') || '0');
+  if (isNaN(themeMode)) themeMode = 0;
+  function applyTheme(m) {
+    document.body.classList.remove('light-on', 'pink-on');
+    if (themeModes[m].cls) document.body.classList.add(themeModes[m].cls);
+    lightToggle.textContent = themeModes[m].icon;
+    lightToggle.title = themeModes[m].label;
+    lightToggle.setAttribute('aria-label', themeModes[m].label);
+  }
+  applyTheme(themeMode);
   lightToggle.addEventListener('click', () => {
-    const isOn = document.body.classList.toggle('light-on');
-    localStorage.setItem('toolsLightOn', String(isOn));
-    lightToggle.setAttribute('aria-label', isOn ? '关闭恒星光亮' : '打开恒星光亮');
-    lightToggle.title = isOn ? '关闭恒星光亮' : '打开恒星光亮';
+    themeMode = (themeMode + 1) % 3;
+    localStorage.setItem('toolsThemeMode', String(themeMode));
+    applyTheme(themeMode);
+  });
+
+  // Effects toggle
+  const effectsToggle = document.getElementById('effectsToggle');
+  let effectsOn = localStorage.getItem('toolsEffects') !== 'off';
+  function applyEffects(on) {
+    document.body.classList.toggle('effects-off', !on);
+    effectsToggle.textContent = on ? '✨' : '💫';
+    effectsToggle.title = on ? '关闭特效' : '打开特效';
+    effectsToggle.setAttribute('aria-label', on ? '关闭特效' : '打开特效');
+  }
+  applyEffects(effectsOn);
+  effectsToggle.addEventListener('click', () => {
+    effectsOn = !effectsOn;
+    localStorage.setItem('toolsEffects', effectsOn ? 'on' : 'off');
+    applyEffects(effectsOn);
   });
   brightnessSlider.addEventListener('input', () => {
     const v = brightnessSlider.value / 100;
@@ -405,6 +459,10 @@
     `;
     stars.appendChild(s);
   });
+</script>
+<script>
+if('scrollRestoration'in history)history.scrollRestoration='manual';
+document.addEventListener('click',function(e){var a=e.target.closest('a');if(!a||!a.href||a.target==='_blank'||a.hasAttribute('download'))return;try{if(new URL(a.href).origin!==location.origin)return}catch(_){return}window.scrollTo(0,0)});
 </script>
 </body>
 </html>

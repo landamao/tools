@@ -1,2 +1,5 @@
 __pycache__/
 *.py[cod]
+
+# 大文件 (>100MB GitHub限制)
+ldmbot资源/ldmbot-release.apk
