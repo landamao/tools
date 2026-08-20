@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WSL 与 Windows 路径互转</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans SC',sans-serif;display:flex;align-items:center;justify-content:center;padding:24px}.card{width:min(900px,100%);background:rgba(30,41,59,.78);border:1px solid rgba(148,163,184,.14);border-radius:20px;padding:28px;box-shadow:0 18px 44px rgba(0,0,0,.28)}h1{margin:0 0 8px;font-size:28px;background:linear-gradient(135deg,#60a5fa,#a78bfa,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}.tip{color:#94a3b8;margin:0 0 22px}textarea{width:100%;height:170px;background:#111827;color:#e5e7eb;border:1px solid #334155;border-radius:14px;padding:14px;font-size:15px;line-height:1.6;resize:vertical;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}textarea:focus{outline:none;border-color:#60a5fa;box-shadow:0 0 0 3px rgba(96,165,250,.15)}.buttons{display:flex;flex-wrap:wrap;gap:12px;margin:16px 0;align-items:center}button,a{border:0;border-radius:12px;padding:11px 16px;background:rgba(96,165,250,.16);color:#bfdbfe;text-decoration:none;cursor:pointer;font-size:14px;transition:background .15s}button:hover,a:hover{background:rgba(96,165,250,.28)}.auto{background:rgba(52,211,153,.16);color:#a7f3d0}.auto:hover{background:rgba(52,211,153,.28)}.copy{background:rgba(167,139,250,.18);color:#ddd6fe}.clear{background:rgba(244,114,182,.14);color:#fbcfe8}.opt{display:inline-flex;align-items:center;gap:7px;font-size:14px;color:#94a3b8;cursor:pointer;user-select:none;margin-left:4px}.opt input{width:16px;height:16px;accent-color:#60a5fa;cursor:pointer}.out{margin-top:18px}.out-wrap{position:relative}.out-wrap .copy{position:absolute;bottom:100%;right:12px;margin-bottom:10px;z-index:5;padding:7px 14px;font-size:13px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.18)}.label{margin:0 0 8px;color:#cbd5e1;font-weight:600}
+#theme-toggle{position:fixed;top:16px;right:16px;z-index:9999;width:40px;height:40px;border:none;border-radius:50%;background:rgba(255,255,255,.12);color:inherit;font-size:20px;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center}
+#theme-toggle:hover{background:rgba(255,255,255,.22)}
+body.light-theme{background:#fff5f7 !important;color:#7c3a4d !important}
+body.light-theme .card{background:rgba(255,248,250,.75) !important;border:1px solid #f3d4dd !important;box-shadow:0 18px 44px rgba(217,112,144,.28) !important}
+body.light-theme h1{background:none !important;-webkit-text-fill-color:#7c3a4d !important;color:#7c3a4d !important}
+body.light-theme .tip{color:#a86080 !important}
+body.light-theme textarea{background:#ffffff !important;color:#2d1b2d !important;border:1px solid #f3d4dd !important;opacity:1 !important;-webkit-text-fill-color:#2d1b2d !important}
+body.light-theme textarea:focus{outline:none !important;border-color:#d97090 !important;box-shadow:0 0 0 3px rgba(217,112,144,.15) !important}
+body.light-theme button,body.light-theme a{background:rgba(217,112,144,.16) !important;color:#7c3a4d !important}
+body.light-theme button:hover,body.light-theme a:hover{background:rgba(217,112,144,.28) !important}
+body.light-theme .auto{background:rgba(52,211,153,.18) !important;color:#0f766e !important}
+body.light-theme .auto:hover{background:rgba(52,211,153,.3) !important}
+body.light-theme .copy{background:rgba(217,112,144,.18) !important;color:#7c3a4d !important}
+body.light-theme .clear{background:rgba(244,114,182,.14) !important;color:#a86080 !important}
+body.light-theme .opt{color:#a86080 !important}
+body.light-theme .opt input{accent-color:#d97090 !important}
+body.light-theme .label{color:#7c3a4d !important}
+body.light-theme #theme-toggle{background:rgba(217,112,144,.16) !important;color:#7c3a4d !important}
+body.light-theme #theme-toggle:hover{background:rgba(217,112,144,.28) !important}
+</style>
+</head>
+<body>
+<button id="theme-toggle">🌙</button>
+<div class="card">
+  <h1>WSL 与 Windows 路径互转</h1>
+  <p class="tip">在 /mnt/c/... 和 C:\... 之间双向转换，也支持 \\wsl.localhost\Ubuntu\...，自动识别方向。</p>
+  <p class="label">输入</p>
+  <textarea id="input" placeholder="例如：&#10;/mnt/c/Users/懒大猫/Desktop&#10;C:\Users\懒大猫\Desktop&#10;\\wsl.localhost\Ubuntu\home\ldm\ldmbot"></textarea>
+  <div class="buttons">
+    <button class="auto" onclick="autoConvert()">🔄 自动转换</button>
+    <button onclick="convert('wsl2win')">WSL→Windows</button>
+    <button onclick="convert('win2wsl')">Windows→WSL</button>
+    <label class="opt"><input type="checkbox" id="escapeSpaces">转义空格（WSL 输出加 \，方便粘贴到终端）</label>
+    <button class="clear" onclick="clearAll()">清空</button>
+    <a href="/">返回工具箱</a>
+  </div>
+  <div class="out">
+    <p class="label">结果</p>
+    <div class="out-wrap">
+      <textarea id="output" readonly></textarea>
+      <button class="copy" onclick="copyOutput()">复制结果</button>
+    </div>
+  </div>
+</div>
+<script>
+const input=document.getElementById('input'), output=document.getElementById('output'), escapeSpaces=document.getElementById('escapeSpaces');
+
+// /mnt/c/Users/foo -> C:\Users\foo
+function wslToWin(line){
+  const m=line.match(/^\/mnt\/([a-zA-Z])(\/.*)?$/);
+  if(!m)return null;
+  const drive=m[1].toUpperCase()+':';
+  const rest=m[2]?m[2].replace(/\//g,'\\'):'';
+  return rest?drive+rest:drive+'\\';
+}
+
+// C:\Users\foo (或 C:/Users/foo) -> /mnt/c/Users/foo
+function winToWsl(line){
+  const m=line.match(/^([a-zA-Z]):([\\/].*)?$/);
+  if(!m)return null;
+  const drive=m[1].toLowerCase();
+  const rest=m[2]?m[2].replace(/\\/g,'/'):'/';
+  let out='/mnt/'+drive+rest;
+  if(escapeSpaces.checked)out=out.replace(/ /g,'\\ ');
+  return out;
+}
+
+// \\wsl.localhost\Ubuntu\home\foo (或 \\wsl$\Ubuntu\home\foo) -> /home/foo
+function uncToWsl(line){
+  const m=line.match(/^\\\\wsl(?:\.localhost|\$)\\[^\\]+\\(.*)$/i);
+  if(!m)return null;
+  let out='/'+m[1].replace(/\\/g,'/');
+  if(escapeSpaces.checked)out=out.replace(/ /g,'\\ ');
+  return out;
+}
+
+// /home/foo (非 /mnt 的 WSL 路径) -> \\wsl.localhost\Ubuntu\home\foo
+function wslToUnc(line){
+  if(/^\/mnt\//.test(line))return null;
+  const rest=line.replace(/^\//,'').replace(/\//g,'\\');
+  return '\\\\wsl.localhost\\Ubuntu\\'+rest;
+}
+
+function convertLine(line, mode){
+  if(!line)return line;
+  const t=line.trim();
+  const isWsl=/^\/mnt\/[a-zA-Z](?:[\\/]|$)/.test(t);
+  const isWslPath=/^\//.test(t);
+  const isWin=/^[a-zA-Z]:[\\/]/.test(t);
+  const isUnc=/^\\\\wsl(?:\.localhost|\$)\\/i.test(t);
+  if(mode==='auto'){
+    if(isWsl)return wslToWin(t);
+    if(isWin)return winToWsl(t);
+    if(isUnc)return uncToWsl(t);
+    if(isWslPath)return wslToUnc(t);
+    return line;
+  }
+  if(mode==='wsl2win')return isWsl?wslToWin(t):isWslPath?wslToUnc(t):line;
+  if(mode==='win2wsl')return isWin?winToWsl(t):isUnc?uncToWsl(t):line;
+  return line;
+}
+
+function run(mode){
+  output.value=input.value.split('\n').map(l=>convertLine(l,mode)).join('\n');
+}
+function autoConvert(){run('auto')}
+function convert(mode){run(mode)}
+async function copyOutput(){if(!output.value)return;await navigator.clipboard.writeText(output.value)}
+function clearAll(){input.value='';output.value='';input.focus()}
+</script>
+<script>(function(){var b=document.getElementById('theme-toggle');var s=localStorage.getItem('theme')||'light';if(s==='light'){document.body.classList.add('light-theme');document.documentElement.style.backgroundColor='#fff5f7';}b.textContent=s==='light'?'☀️':'🌙';b.addEventListener('click',function(){var l=document.body.classList.toggle('light-theme');document.documentElement.style.backgroundColor=l?'#fff5f7':'#0f172a';localStorage.setItem('theme',l?'light':'dark');b.textContent=l?'☀️':'🌙';});})();</script>
+</body>
+</html>
