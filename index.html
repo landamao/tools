@@ -7,7 +7,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧰</text></svg>">
 <style>
   :root {
-    --card-opacity: 0.02;
+    --card-opacity: 0.10;
     --card-blur: 1px;
     --card-border: 0.60;
     --bg-mask: 0.04;
@@ -343,8 +343,8 @@
       <button class="reset-btn" id="resetBtn" type="button" title="恢复默认参数">重置</button>
     </div>
     <div class="setting-item">
-      <div class="item-label"><span>卡片透明度</span><span class="item-val" id="valOpacity">2%</span></div>
-      <input type="range" id="sliderOpacity" min="0" max="40" step="1" value="2">
+      <div class="item-label"><span>卡片透明度</span><span class="item-val" id="valOpacity">10%</span></div>
+      <input type="range" id="sliderOpacity" min="0" max="40" step="1" value="10">
     </div>
     <div class="setting-item">
       <div class="item-label"><span>卡片磨砂模糊</span><span class="item-val" id="valBlur">1px</span></div>
@@ -517,8 +517,8 @@
 <!-- 水玻璃参数交互脚本 -->
 <script>
 (function() {
-  var DEFAULTS = { opacity: 2, blur: 1, mask: 4, border: 60 };
-  var STORAGE_KEY = 'mczk_glass_settings_v2';
+  var DEFAULTS = { opacity: 10, blur: 1, mask: 4, border: 60 };
+  var STORAGE_KEY = 'mczk_glass_settings_v3';
 
   var sliderOpacity = document.getElementById('sliderOpacity');
   var sliderBlur = document.getElementById('sliderBlur');
