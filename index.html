@@ -349,5 +349,13 @@
   });
 })();
 </script>
+<script src="https://pet.alcy.cc/dsh-pet.standalone.js"></script>
+<script>
+  window.addEventListener('DOMContentLoaded', function() {
+    if (typeof DSHPet !== 'undefined') {
+      DSHPet.init({ size: 280, corner: 'bottom-right' });
+    }
+  });
+</script>
 </body>
 </html>
