@@ -6,12 +6,18 @@
 <title>懒大猫的网址导航</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧰</text></svg>">
 <style>
+  :root {
+    --card-opacity: 0.10;
+    --card-blur: 1.5px;
+    --card-border: 0.25;
+    --bg-mask: 0.16;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     min-height: 100vh;
     background-color: #1a1a2e;
-    background-image: linear-gradient(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.22)), url('https://t.alcy.cc/ycy');
+    background-image: linear-gradient(rgba(0, 0, 0, var(--bg-mask)), rgba(0, 0, 0, calc(var(--bg-mask) + 0.1))), url('https://t.alcy.cc/ycy');
     background-repeat: no-repeat;
     background-position: center center;
     background-size: cover;
@@ -20,6 +26,132 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+  }
+
+  /* 右上角水玻璃调节面板 */
+  .settings-wrap {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    z-index: 1000;
+  }
+  .settings-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.32);
+    border-top: 1px solid rgba(255, 255, 255, 0.65);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+    transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .settings-btn:hover {
+    background: rgba(255, 255, 255, 0.24);
+    transform: rotate(45deg) scale(1.06);
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.32), inset 0 1px 2px rgba(255, 255, 255, 0.6);
+  }
+  .settings-panel {
+    position: absolute;
+    top: 50px;
+    right: 0;
+    width: 250px;
+    padding: 18px;
+    border-radius: 18px;
+    background: rgba(18, 22, 36, 0.82);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-top: 1px solid rgba(255, 255, 255, 0.45);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.25);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-8px) scale(0.96);
+    transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .settings-panel.open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+  }
+  .panel-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  .reset-btn {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #e2e8f0;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .reset-btn:hover {
+    background: rgba(255, 255, 255, 0.22);
+    color: #ffffff;
+  }
+  .setting-item {
+    margin-bottom: 13px;
+  }
+  .setting-item:last-child {
+    margin-bottom: 0;
+  }
+  .item-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.88);
+    margin-bottom: 6px;
+  }
+  .item-val {
+    font-family: Consolas, monospace;
+    font-size: 11px;
+    color: #93c5fd;
+  }
+  .setting-item input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 5px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.2);
+    outline: none;
+    cursor: pointer;
+  }
+  .setting-item input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid #60a5fa;
+    box-shadow: 0 0 8px rgba(96, 165, 250, 0.6);
+    cursor: pointer;
+  }
+  .setting-item input[type="range"]::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2px solid #60a5fa;
+    box-shadow: 0 0 8px rgba(96, 165, 250, 0.6);
+    cursor: pointer;
   }
 
   .container {
@@ -92,14 +224,14 @@
     .tools-grid { grid-template-columns: repeat(4, 1fr); }
   }
 
-  /* 晶莹水玻璃卡片：极高透光、无磨砂雾感 */
+  /* 晶莹水玻璃卡片：变量控制通透与微光 */
   .tool-card {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.03) 100%);
-    -webkit-backdrop-filter: blur(1.5px);
-    backdrop-filter: blur(1.5px);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    border-top: 1px solid rgba(255, 255, 255, 0.55);
-    border-left: 1px solid rgba(255, 255, 255, 0.38);
+    background: linear-gradient(135deg, rgba(255, 255, 255, var(--card-opacity)) 0%, rgba(255, 255, 255, calc(var(--card-opacity) * 0.3)) 100%);
+    -webkit-backdrop-filter: blur(var(--card-blur));
+    backdrop-filter: blur(var(--card-blur));
+    border: 1px solid rgba(255, 255, 255, var(--card-border));
+    border-top: 1px solid rgba(255, 255, 255, calc(var(--card-border) * 2.2));
+    border-left: 1px solid rgba(255, 255, 255, calc(var(--card-border) * 1.5));
     border-radius: 18px;
     padding: 24px 20px;
     cursor: pointer;
@@ -114,8 +246,8 @@
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.35);
   }
   .tool-card:hover {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.08) 100%);
-    border-color: rgba(255, 255, 255, 0.5);
+    background: linear-gradient(135deg, rgba(255, 255, 255, calc(var(--card-opacity) * 1.8)) 0%, rgba(255, 255, 255, calc(var(--card-opacity) * 0.8)) 100%);
+    border-color: rgba(255, 255, 255, calc(var(--card-border) * 2));
     border-top: 1px solid rgba(255, 255, 255, 0.85);
     transform: translateY(-4px) scale(1.015);
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28), inset 0 1px 2px rgba(255, 255, 255, 0.6);
@@ -131,11 +263,11 @@
     justify-content: center;
     font-size: 24px;
     flex-shrink: 0;
-    background: rgba(255, 255, 255, 0.12);
-    -webkit-backdrop-filter: blur(1.5px);
-    backdrop-filter: blur(1.5px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-top: 1px solid rgba(255, 255, 255, 0.55);
+    background: rgba(255, 255, 255, calc(var(--card-opacity) * 1.2));
+    -webkit-backdrop-filter: blur(var(--card-blur));
+    backdrop-filter: blur(var(--card-blur));
+    border: 1px solid rgba(255, 255, 255, var(--card-border));
+    border-top: 1px solid rgba(255, 255, 255, calc(var(--card-border) * 2.2));
     box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35), 0 2px 8px rgba(0, 0, 0, 0.15);
   }
   .tool-icon.blue { background: rgba(96, 165, 250, 0.18); border-color: rgba(147, 197, 253, 0.4); }
@@ -146,15 +278,15 @@
 
   /* 砂糖酱特别款高透水玻璃 */
   .tool-card.pink-card {
-    background: linear-gradient(135deg, rgba(255, 192, 203, 0.14) 0%, rgba(255, 192, 203, 0.04) 100%);
-    border: 1px solid rgba(255, 182, 193, 0.35);
-    border-top: 1px solid rgba(255, 225, 235, 0.7);
-    border-left: 1px solid rgba(255, 200, 215, 0.45);
+    background: linear-gradient(135deg, rgba(255, 192, 203, calc(var(--card-opacity) * 1.4)) 0%, rgba(255, 192, 203, calc(var(--card-opacity) * 0.4)) 100%);
+    border: 1px solid rgba(255, 182, 193, calc(var(--card-border) * 1.4));
+    border-top: 1px solid rgba(255, 225, 235, calc(var(--card-border) * 2.8));
+    border-left: 1px solid rgba(255, 200, 215, calc(var(--card-border) * 1.8));
     box-shadow: 0 4px 20px rgba(236, 72, 153, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.4);
   }
   .tool-card.pink-card:hover {
-    background: linear-gradient(135deg, rgba(255, 192, 203, 0.24) 0%, rgba(255, 192, 203, 0.1) 100%);
-    border-color: rgba(255, 182, 193, 0.65);
+    background: linear-gradient(135deg, rgba(255, 192, 203, calc(var(--card-opacity) * 2.4)) 0%, rgba(255, 192, 203, calc(var(--card-opacity) * 1)) 100%);
+    border-color: rgba(255, 182, 193, calc(var(--card-border) * 2.5));
     border-top: 1px solid rgba(255, 240, 248, 0.95);
     box-shadow: 0 12px 32px rgba(236, 72, 153, 0.25), inset 0 1px 2px rgba(255, 255, 255, 0.65);
   }
@@ -196,6 +328,38 @@
 </style>
 </head>
 <body>
+
+<!-- 右上角外观调节组件 -->
+<div class="settings-wrap" id="settingsWrap">
+  <button class="settings-btn" id="settingsBtn" type="button" aria-label="外观设置" title="外观设置">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+    </svg>
+  </button>
+  <div class="settings-panel" id="settingsPanel">
+    <div class="panel-title">
+      <span>水玻璃外观调节</span>
+      <button class="reset-btn" id="resetBtn" type="button" title="恢复默认参数">重置</button>
+    </div>
+    <div class="setting-item">
+      <div class="item-label"><span>卡片透明度</span><span class="item-val" id="valOpacity">10%</span></div>
+      <input type="range" id="sliderOpacity" min="0" max="40" step="1" value="10">
+    </div>
+    <div class="setting-item">
+      <div class="item-label"><span>卡片磨砂模糊</span><span class="item-val" id="valBlur">1.5px</span></div>
+      <input type="range" id="sliderBlur" min="0" max="25" step="0.5" value="1.5">
+    </div>
+    <div class="setting-item">
+      <div class="item-label"><span>背景遮罩暗度</span><span class="item-val" id="valMask">16%</span></div>
+      <input type="range" id="sliderMask" min="0" max="60" step="2" value="16">
+    </div>
+    <div class="setting-item">
+      <div class="item-label"><span>玻璃边框反光</span><span class="item-val" id="valBorder">25%</span></div>
+      <input type="range" id="sliderBorder" min="5" max="60" step="1" value="25">
+    </div>
+  </div>
+</div>
 
 <div class="container">
   <div class="header">
@@ -349,6 +513,96 @@
   });
 })();
 </script>
+
+<!-- 水玻璃参数交互脚本 -->
+<script>
+(function() {
+  var DEFAULTS = { opacity: 10, blur: 1.5, mask: 16, border: 25 };
+  var STORAGE_KEY = 'mczk_glass_settings';
+
+  var sliderOpacity = document.getElementById('sliderOpacity');
+  var sliderBlur = document.getElementById('sliderBlur');
+  var sliderMask = document.getElementById('sliderMask');
+  var sliderBorder = document.getElementById('sliderBorder');
+
+  var valOpacity = document.getElementById('valOpacity');
+  var valBlur = document.getElementById('valBlur');
+  var valMask = document.getElementById('valMask');
+  var valBorder = document.getElementById('valBorder');
+
+  var settingsBtn = document.getElementById('settingsBtn');
+  var settingsPanel = document.getElementById('settingsPanel');
+  var resetBtn = document.getElementById('resetBtn');
+
+  function loadSettings() {
+    try {
+      var saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (saved && typeof saved === 'object') {
+        return Object.assign({}, DEFAULTS, saved);
+      }
+    } catch (e) {}
+    return Object.assign({}, DEFAULTS);
+  }
+
+  function applySettings(cfg) {
+    document.documentElement.style.setProperty('--card-opacity', (cfg.opacity / 100).toFixed(2));
+    document.documentElement.style.setProperty('--card-blur', cfg.blur + 'px');
+    document.documentElement.style.setProperty('--bg-mask', (cfg.mask / 100).toFixed(2));
+    document.documentElement.style.setProperty('--card-border', (cfg.border / 100).toFixed(2));
+
+    sliderOpacity.value = cfg.opacity;
+    sliderBlur.value = cfg.blur;
+    sliderMask.value = cfg.mask;
+    sliderBorder.value = cfg.border;
+
+    valOpacity.textContent = cfg.opacity + '%';
+    valBlur.textContent = cfg.blur + 'px';
+    valMask.textContent = cfg.mask + '%';
+    valBorder.textContent = cfg.border + '%';
+  }
+
+  function saveSettings() {
+    var cfg = {
+      opacity: parseFloat(sliderOpacity.value),
+      blur: parseFloat(sliderBlur.value),
+      mask: parseFloat(sliderMask.value),
+      border: parseFloat(sliderBorder.value)
+    };
+    applySettings(cfg);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+    } catch (e) {}
+  }
+
+  applySettings(loadSettings());
+
+  sliderOpacity.addEventListener('input', saveSettings);
+  sliderBlur.addEventListener('input', saveSettings);
+  sliderMask.addEventListener('input', saveSettings);
+  sliderBorder.addEventListener('input', saveSettings);
+
+  settingsBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    settingsPanel.classList.toggle('open');
+  });
+
+  settingsPanel.addEventListener('click', function(e) {
+    e.stopPropagation();
+  });
+
+  document.addEventListener('click', function() {
+    settingsPanel.classList.remove('open');
+  });
+
+  resetBtn.addEventListener('click', function() {
+    applySettings(DEFAULTS);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (e) {}
+  });
+})();
+</script>
+
 <script src="https://pet.alcy.cc/dsh-pet.standalone.js"></script>
 <script>
   window.addEventListener('DOMContentLoaded', function() {
