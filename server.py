@@ -8,10 +8,89 @@ import argparse
 import html
 import os
 import posixpath
+import sqlite3
+import threading
+import time
 import urllib.parse
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+# 计数数据库放在 tools 目录外面，避免被 git 同步/覆盖时丢失
+DB_DIR = os.environ.get('TOOLS_DB_DIR') or os.path.join(os.path.dirname(ROOT), 'tools-data')
+DB_FILE = os.path.join(DB_DIR, 'visits.db')
+_stats_lock = threading.Lock()
+_recent_hits = {}   # (ip, rel_key) -> timestamp，用于短时间去重
+DEDUP_SECONDS = 5
+_db_ready = False
+
+
+def _db():
+    global _db_ready
+    os.makedirs(DB_DIR, exist_ok=True)
+    conn = sqlite3.connect(DB_FILE, timeout=10)
+    if not _db_ready:
+        conn.execute('''CREATE TABLE IF NOT EXISTS visits (
+            path TEXT PRIMARY KEY,
+            n INTEGER NOT NULL DEFAULT 0,
+            first TEXT,
+            last TEXT
+        )''')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_visits_n ON visits(n DESC)')
+        conn.commit()
+        _db_ready = True
+    return conn
+
+
+def get_downloads(rel_key):
+    try:
+        with _stats_lock:
+            conn = _db()
+            row = conn.execute('SELECT n FROM visits WHERE path=?', (rel_key,)).fetchone()
+            conn.close()
+        return int(row[0]) if row else 0
+    except Exception:
+        return 0
+
+
+def get_all_counts():
+    try:
+        with _stats_lock:
+            conn = _db()
+            rows = conn.execute('SELECT path, n FROM visits').fetchall()
+            conn.close()
+        return {p: int(n) for p, n in rows}
+    except Exception:
+        return {}
+
+
+def should_count(ip, rel_key):
+    now = time.time()
+    key = (ip, rel_key)
+    with _stats_lock:
+        last = _recent_hits.get(key, 0)
+        if now - last < DEDUP_SECONDS:
+            return False
+        _recent_hits[key] = now
+        if len(_recent_hits) > 5000:
+            for k in [k for k, v in _recent_hits.items() if now - v > 3600]:
+                _recent_hits.pop(k, None)
+        return True
+
+
+def bump_download(rel_key, ip=''):
+    """访问计数（持久化到 SQLite）。同一 IP 对同一文件 DEDUP_SECONDS 秒内只算一次
+    （浏览器一次点击常会发两个请求：200 + 304 缓存确认）。"""
+    if not should_count(ip, rel_key):
+        return get_downloads(rel_key)
+    ts = time.strftime('%Y-%m-%d %H:%M:%S')
+    with _stats_lock:
+        conn = _db()
+        conn.execute('''INSERT INTO visits(path, n, first, last) VALUES(?,1,?,?)
+                        ON CONFLICT(path) DO UPDATE SET n=n+1, last=excluded.last''', (rel_key, ts, ts))
+        conn.commit()
+        row = conn.execute('SELECT n FROM visits WHERE path=?', (rel_key,)).fetchone()
+        conn.close()
+    return int(row[0]) if row else 1
 
 NAV_SCRIPT = """<script>
 (function(){
@@ -73,7 +152,7 @@ PAGE = """<!doctype html>
 <meta name="color-scheme" content="dark">
 <title>工具箱文件浏览器 · {title}</title>
 <style>
-*{{box-sizing:border-box}}html{{color-scheme:dark;background:#0f172a}}body{{margin:0;min-height:100vh;background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans SC',sans-serif;padding:28px 14px}}a{{color:inherit;text-decoration:none}}.wrap{{max-width:1080px;margin:auto;background:rgba(30,41,59,.82);border:1px solid rgba(148,163,184,.14);border-radius:20px;overflow:hidden;box-shadow:0 18px 44px rgba(0,0,0,.28)}}.head{{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:22px 26px;background:linear-gradient(135deg,#1e293b,#334155)}}h1{{font-size:22px;margin:0}}.home{{font-size:14px;color:#93c5fd}}.head-right{{display:flex;align-items:center;gap:14px}}.head-left{{display:flex;align-items:center;gap:14px}}.tip{{font-size:13px;color:#64748b}}.crumb{{padding:14px 26px;background:rgba(15,23,42,.55);color:#94a3b8;font-size:14px}}.grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;padding:22px}}.item{{display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:14px;background:rgba(15,23,42,.48);border:1px solid rgba(148,163,184,.12);transition:.18s}}.item:hover{{transform:translateY(-2px);border-color:rgba(96,165,250,.45);box-shadow:0 8px 24px rgba(96,165,250,.12)}}.icon{{font-size:26px;width:34px;text-align:center}}.name{{word-break:break-all;font-weight:600}}.size{{font-size:12px;color:#64748b;margin-top:4px;font-weight:400}}.open{{flex:1;display:flex;gap:12px;align-items:center}}.dl{{flex-shrink:0;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:rgba(96,165,250,.12);color:#93c5fd;font-size:16px;transition:.15s}}.dl:hover{{background:rgba(96,165,250,.3);transform:scale(1.08)}}#theme-toggle{{position:fixed;top:16px;right:16px;z-index:9999;width:40px;height:40px;border:none;border-radius:50%;background:rgba(255,255,255,.12);color:inherit;font-size:20px;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center}}#theme-toggle:hover{{background:rgba(255,255,255,.22)}}body.light-theme{{background:#fff5f7!important;color:#7c3a4d!important}}body.light-theme .wrap{{background:rgba(255,248,250,.92)!important;border-color:#f3d4dd!important}}body.light-theme .head{{background:linear-gradient(135deg,#fff5f7,#fde6ee)!important}}body.light-theme h1{{color:#7c3a4d!important}}body.light-theme .home{{color:#d97090!important}}body.light-theme .tip{{color:#a86080!important}}body.light-theme .crumb{{background:rgba(255,245,247,.55)!important;color:#a86080!important}}body.light-theme .item{{background:rgba(255,248,250,.75)!important;border-color:#f3d4dd!important}}body.light-theme .item:hover{{border-color:#e8a0b8!important;box-shadow:0 8px 24px rgba(232,160,184,.12)!important}}body.light-theme .size{{color:#a86080!important}}body.light-theme .dl{{background:rgba(216,112,144,.12)!important;color:#d97090!important}}body.light-theme .dl:hover{{background:rgba(216,112,144,.25)!important}}body.light-theme .empty{{color:#a86080!important}}.empty{{padding:50px;text-align:center;color:#64748b}}@media(max-width:640px){{.head{{padding:18px;align-items:flex-start;flex-direction:column}}.grid{{grid-template-columns:1fr;padding:16px}}}}@view-transition{{navigation:auto}}
+*{{box-sizing:border-box}}html{{color-scheme:dark;background:#0f172a}}body{{margin:0;min-height:100vh;background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Noto Sans SC',sans-serif;padding:28px 14px}}a{{color:inherit;text-decoration:none}}.wrap{{max-width:1080px;margin:auto;background:rgba(30,41,59,.82);border:1px solid rgba(148,163,184,.14);border-radius:20px;overflow:hidden;box-shadow:0 18px 44px rgba(0,0,0,.28)}}.head{{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:22px 26px;background:linear-gradient(135deg,#1e293b,#334155)}}h1{{font-size:22px;margin:0}}.home{{font-size:14px;color:#93c5fd}}.head-right{{display:flex;align-items:center;gap:14px}}.head-left{{display:flex;align-items:center;gap:14px}}.tip{{font-size:13px;color:#64748b}}.crumb{{padding:14px 26px;background:rgba(15,23,42,.55);color:#94a3b8;font-size:14px}}.grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;padding:22px}}.item{{display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:14px;background:rgba(15,23,42,.48);border:1px solid rgba(148,163,184,.12);transition:.18s}}.item:hover{{transform:translateY(-2px);border-color:rgba(96,165,250,.45);box-shadow:0 8px 24px rgba(96,165,250,.12)}}.icon{{font-size:26px;width:34px;text-align:center}}.name{{word-break:break-all;font-weight:600}}.size{{font-size:12px;color:#64748b;margin-top:4px;font-weight:400}}.open{{flex:1;display:flex;gap:12px;align-items:center}}.dl{{flex-shrink:0;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:rgba(96,165,250,.12);color:#93c5fd;font-size:16px;transition:.15s}}.dl:hover{{background:rgba(96,165,250,.3);transform:scale(1.08)}}.dlbox{{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0}}.dlnum{{font-size:11px;color:#7f93ab;line-height:1.1;white-space:nowrap}}body.light-theme .dlnum{{color:#a86080}}#theme-toggle{{position:fixed;top:16px;right:16px;z-index:9999;width:40px;height:40px;border:none;border-radius:50%;background:rgba(255,255,255,.12);color:inherit;font-size:20px;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center}}#theme-toggle:hover{{background:rgba(255,255,255,.22)}}body.light-theme{{background:#fff5f7!important;color:#7c3a4d!important}}body.light-theme .wrap{{background:rgba(255,248,250,.92)!important;border-color:#f3d4dd!important}}body.light-theme .head{{background:linear-gradient(135deg,#fff5f7,#fde6ee)!important}}body.light-theme h1{{color:#7c3a4d!important}}body.light-theme .home{{color:#d97090!important}}body.light-theme .tip{{color:#a86080!important}}body.light-theme .crumb{{background:rgba(255,245,247,.55)!important;color:#a86080!important}}body.light-theme .item{{background:rgba(255,248,250,.75)!important;border-color:#f3d4dd!important}}body.light-theme .item:hover{{border-color:#e8a0b8!important;box-shadow:0 8px 24px rgba(232,160,184,.12)!important}}body.light-theme .size{{color:#a86080!important}}body.light-theme .dl{{background:rgba(216,112,144,.12)!important;color:#d97090!important}}body.light-theme .dl:hover{{background:rgba(216,112,144,.25)!important}}body.light-theme .empty{{color:#a86080!important}}.empty{{padding:50px;text-align:center;color:#64748b}}@media(max-width:640px){{.head{{padding:18px;align-items:flex-start;flex-direction:column}}.grid{{grid-template-columns:1fr;padding:16px}}}}@view-transition{{navigation:auto}}
 </style>
 </head>
 <body><button id="theme-toggle">🌙</button><div class="wrap"><div class="head"><div class="head-left"><h1>🧰 工具箱文件浏览器</h1><a class="home" href="/">← 返回工具箱主页</a></div><div class="head-right"><span class="tip">点击文件可查看或下载，点击⬇可下载</span></div></div><div class="crumb">📂 {crumb}</div><div class="grid">{items}</div></div>{script}</body></html>"""
@@ -128,6 +207,8 @@ class ToolsFileBrowser(SimpleHTTPRequestHandler):
             if os.path.isdir(fs_path):
                 return self.show_directory(fs_path)
             if os.path.isfile(fs_path):
+                # 任何形式的访问（查看/下载/直链）都计一次
+                bump_download(os.path.relpath(fs_path, ROOT).replace(os.sep, '/'), self.client_address[0])
                 if is_raw:
                     self.path = '/' + sub
                     return super().do_GET()
@@ -149,8 +230,12 @@ class ToolsFileBrowser(SimpleHTTPRequestHandler):
                 self.path = path.rstrip('/') + '/index.html'
                 return super().do_GET()
             return self.show_directory(fs_path)
-        if os.path.isfile(fs_path) and not is_raw:
-            return self.serve_file(fs_path, path)
+        if os.path.isfile(fs_path):
+            # 不带 /browse/ 的直链访问也计数
+            bump_download(os.path.relpath(fs_path, ROOT).replace(os.sep, '/'), self.client_address[0])
+            if not is_raw:
+                return self.serve_file(fs_path, path)
+            return super().do_GET()
         return super().do_GET()
 
     def serve_file(self, fs_path, url_path):
@@ -201,6 +286,7 @@ class ToolsFileBrowser(SimpleHTTPRequestHandler):
         names.sort(key=lambda n: (not os.path.isdir(os.path.join(real, n)), n.lower()))
         rel = os.path.relpath(real, root)
         if rel == '.': rel = ''
+        counts = get_all_counts()
         items = []
         if rel:
             parent = urllib.parse.quote(os.path.dirname(rel).replace(os.sep, '/'))
@@ -214,7 +300,7 @@ class ToolsFileBrowser(SimpleHTTPRequestHandler):
             href = '/browse/' + urllib.parse.quote(url_rel) + ('/' if os.path.isdir(full) else '')
             icon = '📁' if os.path.isdir(full) else self.icon(name)
             size = '' if os.path.isdir(full) else self.size(os.path.getsize(full))
-            items.append(self.card(href, icon, name + ('/' if os.path.isdir(full) else ''), size, is_dir=os.path.isdir(full)))
+            items.append(self.card(href, icon, name + ('/' if os.path.isdir(full) else ''), size, is_dir=os.path.isdir(full), rel_key=url_rel, counts=counts))
         body = PAGE.format(
             title=html.escape(rel or '/'),
             crumb=html.escape('/' + rel),
@@ -229,14 +315,17 @@ class ToolsFileBrowser(SimpleHTTPRequestHandler):
         self.wfile.write(data)
         return None
 
-    def card(self, href, icon, name, size, is_dir=False):
+    def card(self, href, icon, name, size, is_dir=False, rel_key=None, counts=None):
         size_html = f'<div class="size">{html.escape(size)}</div>' if size else ''
         if is_dir:
             return f'<a class="item" href="{href}"><div class="icon">{icon}</div><div><div class="name">{html.escape(name)}</div>{size_html}</div></a>'
         dl_name = html.escape(name.rstrip('/'))
+        cnt = (counts or {}).get(rel_key or name, 0) if counts is not None else get_downloads(rel_key or name)
+        cnt_html = f'<div class="dlnum">{cnt} 次</div>' if cnt > 0 else ''
         return (f'<div class="item"><a class="open" href="{href}"><div class="icon">{icon}</div>'
                 f'<div><div class="name">{html.escape(name)}</div>{size_html}</div></a>'
-                f'<a class="dl" href="{href}?raw=1" download="{dl_name}">⬇</a></div>')
+                f'<div class="dlbox"><a class="dl" href="{href}?raw=1" download="{dl_name}">⬇</a>'
+                f'{cnt_html}</div></div>')
 
     def icon(self, name):
         ext = os.path.splitext(name)[1].lower()

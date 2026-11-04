@@ -487,8 +487,25 @@
   });
 </script>
 <script>
-if('scrollRestoration'in history)history.scrollRestoration='manual';
-document.addEventListener('click',function(e){var a=e.target.closest('a');if(!a||!a.href||a.target==='_blank'||a.hasAttribute('download'))return;try{if(new URL(a.href).origin!==location.origin)return}catch(_){return}window.scrollTo(0,0)});
+(function(){
+  var KEY='toolsScrollY';
+  /* 交给浏览器原生恢复，避免被 manual 强制回到顶部 */
+  if('scrollRestoration' in history)history.scrollRestoration='auto';
+  /* 点链接离开前记下当前滚动位置（含跨域链接） */
+  document.addEventListener('click',function(e){
+    var a=e.target.closest('a');
+    if(!a||!a.href||a.target==='_blank'||a.hasAttribute('download'))return;
+    try{sessionStorage.setItem(KEY,JSON.stringify({y:window.scrollY||window.pageYOffset||0,p:location.pathname+location.search}));}catch(_){}
+  });
+  /* 兜底：浏览器没自动恢复时（bfcache 失效等）手动回到原位置 */
+  window.addEventListener('pageshow',function(){
+    var d=null;
+    try{d=JSON.parse(sessionStorage.getItem(KEY)||'null');}catch(_){d=null;}
+    if(!d||typeof d.y!=='number')return;
+    if(d.p!==(location.pathname+location.search))return;
+    if(d.y>0&&Math.abs((window.scrollY||window.pageYOffset||0)-d.y)>2){window.scrollTo(0,d.y);}
+  });
+})();
 </script>
 </body>
 </html>
