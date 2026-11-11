@@ -329,7 +329,7 @@ class ToolsFileBrowser(SimpleHTTPRequestHandler):
 
     def icon(self, name):
         ext = os.path.splitext(name)[1].lower()
-        return {'.html':'🌐','.htm':'🌐','.css':'🎨','.js':'⚡','.json':'📦','.jpg':'🖼️','.jpeg':'🖼️','.png':'🖼️','.gif':'🖼️','.svg':'🎨','.pdf':'📕','.txt':'📄','.md':'📝','.py':'🐍','.zip':'🗜️','.mp3':'🎵','.mp4':'🎬'}.get(ext, '📄')
+        return {'.html':'🌐','.htm':'🌐','.css':'🎨','.js':'⚡','.json':'📦','.jpg':'🖼️','.jpeg':'🖼️','.png':'🖼️','.gif':'🖼️','.svg':'🎨','.pdf':'📕','.txt':'📄','.md':'📝','.py':'🐍','.zip':'📦','.7z':'📦','.rar':'📦','.tar':'📦','.gz':'📦','.tgz':'📦','.bz2':'📦','.xz':'📦','.mp3':'🎵','.mp4':'🎬'}.get(ext, '📄')
 
     def size(self, n):
         for u in ('B','KB','MB','GB'):
