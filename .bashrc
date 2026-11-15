@@ -161,7 +161,13 @@ hermes() ( printf '\033]0;Hermes\007'; command hermes "$@" )
 ldmbot() ( printf "\033]0;ldmbot\007"; cd "$HOME/ldmbot" && exec "$HOME/ldmbot/.venv/bin/python" main.py "$@" )
 ldmapi() ( printf "\033]0;LDMAPI\007"; cd "$HOME/ldm-api" && exec ./ldmapi "$@" )
 newapi() ( printf "\033]0;NewAPI\007"; cd "$HOME/new-api" && exec ./newapi "$@" )
-napcat() ( printf "\033]0;NapCat\007"; cd "$HOME/napcat" && exec bash start_napcat.sh "$@" )
+napcat() (
+  cd "$HOME/NapCat" 2>/dev/null \
+    || cd "$HOME/napcat" 2>/dev/null \
+    || { echo "打开 $HOME/NapCat 和 $HOME/napcat 均失败" >&2; exit 1; }
+  printf '\033]0;%s\007' NapCat
+  exec bash start_napcat.sh "$@"
+)
 
 ondl() {
   local proxy=${1:-ldm.ccb:7890}

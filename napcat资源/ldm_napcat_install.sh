@@ -578,6 +578,6 @@ cd "${INSTALL_DIR}" || die "无法进入目录 ${INSTALL_DIR}。"
 bash "${INSTALL_DIR}/start_napcat.sh"
 napcat_exit=$?
 if [ "$napcat_exit" -ne 0 ]; then
-    log "错误: NapCat 启动失败(退出码 ${napcat_exit})，请检查上方输出。"
+    log "退出码：${napcat_exit}，NapCat可能启动失败，请检查上方输出，若是你手动停止请忽略。"
 fi
 exit "$napcat_exit"
